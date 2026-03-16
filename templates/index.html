@@ -375,8 +375,6 @@
     <script src="{{ url_for('static', filename='script.js') }}"></script>
     <script>
         const closedStats = {{ closed_stats|tojson }};
-        const sentimentDist = {{ sentiment.distribution|tojson }};
-        initDistributionChart(sentimentDist);
         setInterval(refreshData, 180000);
     </script>
 </body>

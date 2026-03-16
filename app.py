@@ -270,13 +270,20 @@ def fetch_leaderboard():
 def fetch_top_holders():
     return []
 
+def parse_prices(prices_data):
+    if not prices_data:
+        return []
+    try:
+        if isinstance(prices_data, str):
+            prices_data = json.loads(prices_data)
+        return [float(p) for p in prices_data]
+    except:
+        return []
+
 def get_yes_price(market):
-    outcome_prices = market.get("outcomePrices", [])
+    outcome_prices = parse_prices(market.get("outcomePrices"))
     if outcome_prices and len(outcome_prices) > 0:
-        try:
-            return float(outcome_prices[0])
-        except:
-            pass
+        return outcome_prices[0]
     val = market.get("yesPrice")
     if val:
         try:
@@ -286,12 +293,9 @@ def get_yes_price(market):
     return 0.5
 
 def get_no_price(market):
-    outcome_prices = market.get("outcomePrices", [])
+    outcome_prices = parse_prices(market.get("outcomePrices"))
     if outcome_prices and len(outcome_prices) > 1:
-        try:
-            return float(outcome_prices[1])
-        except:
-            pass
+        return outcome_prices[1]
     val = market.get("noPrice")
     if val:
         try:
@@ -355,9 +359,6 @@ def analyze_sentiment(markets):
     for market in markets:
         try:
             volume = float(market.get("volume24hr", 0) or 0)
-            if volume < 1000:
-                continue
-                
             current_price = get_yes_price(market)
             day_change = float(market.get("oneDayPriceChange", 0) or 0)
             
@@ -393,14 +394,7 @@ def analyze_sentiment(markets):
             else:
                 sentiment_data["neutral"] += 1
             
-            tags = market.get("tags", [])
-            cat = tags[0] if tags else "Other"
-            if cat not in sentiment_data["categories"]:
-                sentiment_data["categories"][cat] = {"yes": 0, "no": 0, "count": 0}
-            sentiment_data["categories"][cat]["count"] += 1
-            sentiment_data["categories"][cat]["yes"] += current_price
-            
-            if abs(day_change) > 0.05 and volume > 5000:
+            if volume > 5000 and abs(day_change) > 0.05:
                 direction = "📈" if day_change > 0 else "📉"
                 sentiment_data["hot_takes"].append({
                     "question": market.get("question", "Unknown")[:50],

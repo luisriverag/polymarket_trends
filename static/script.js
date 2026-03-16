@@ -1,0 +1,163 @@
+function initCharts(volumeData, closedStats) {
+    const volumeCtx = document.getElementById('volumeChart').getContext('2d');
+    const resolutionCtx = document.getElementById('resolutionChart').getContext('2d');
+    
+    const labels = volumeData.map(d => {
+        const date = new Date(d.date);
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    });
+    
+    const volumes = volumeData.map(d => d.volume);
+    
+    new Chart(volumeCtx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Volume ($)',
+                data: volumes,
+                backgroundColor: volumes.map((v, i) => {
+                    const max = Math.max(...volumes);
+                    const alpha = 0.3 + (v / max) * 0.7;
+                    return `rgba(88, 166, 255, ${alpha})`;
+                }),
+                borderColor: '#58a6ff',
+                borderWidth: 1,
+                borderRadius: 4,
+                borderSkipped: false,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: '#161b22',
+                    titleColor: '#c9d1d9',
+                    bodyColor: '#c9d1d9',
+                    borderColor: '#30363d',
+                    borderWidth: 1,
+                    padding: 12,
+                    displayColors: false,
+                    callbacks: {
+                        label: function(context) {
+                            const value = context.raw;
+                            if (value >= 1e6) {
+                                return '$' + (value / 1e6).toFixed(2) + 'M';
+                            } else if (value >= 1e3) {
+                                return '$' + (value / 1e3).toFixed(2) + 'K';
+                            }
+                            return '$' + value.toFixed(2);
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        color: '#30363d',
+                        drawBorder: false
+                    },
+                    ticks: {
+                        color: '#8b949e',
+                        font: {
+                            family: "'JetBrains Mono', monospace",
+                            size: 10
+                        },
+                        maxRotation: 45,
+                        minRotation: 45
+                    }
+                },
+                y: {
+                    grid: {
+                        color: '#30363d',
+                        drawBorder: false
+                    },
+                    ticks: {
+                        color: '#8b949e',
+                        font: {
+                            family: "'JetBrains Mono', monospace",
+                            size: 10
+                        },
+                        callback: function(value) {
+                            if (value >= 1e6) {
+                                return '$' + (value / 1e6).toFixed(1) + 'M';
+                            } else if (value >= 1e3) {
+                                return '$' + (value / 1e3).toFixed(0) + 'K';
+                            }
+                            return '$' + value;
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    const yesCount = closedStats.yes_resolved || 0;
+    const noCount = closedStats.no_resolved || 0;
+    
+    if (yesCount > 0 || noCount > 0) {
+        new Chart(resolutionCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Yes', 'No'],
+                datasets: [{
+                    data: [yesCount, noCount],
+                    backgroundColor: ['#3fb950', '#f85149'],
+                    borderColor: '#161b22',
+                    borderWidth: 3,
+                    hoverOffset: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '60%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: '#c9d1d9',
+                            font: {
+                                family: "'JetBrains Mono', monospace",
+                                size: 11
+                            },
+                            padding: 16,
+                            usePointStyle: true,
+                            pointStyle: 'circle'
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: '#161b22',
+                        titleColor: '#c9d1d9',
+                        bodyColor: '#c9d1d9',
+                        borderColor: '#30363d',
+                        borderWidth: 1,
+                        padding: 12
+                    }
+                }
+            }
+        });
+    } else {
+        document.getElementById('resolutionChart').parentElement.innerHTML = 
+            '<div class="empty-state"><p>No resolution data available</p></div>';
+    }
+}
+
+async function refreshData() {
+    const btn = document.getElementById('refresh-btn');
+    btn.textContent = '⟳ Refreshing...';
+    btn.disabled = true;
+    
+    try {
+        await fetch('/api/refresh');
+        location.reload();
+    } catch (e) {
+        console.error('Refresh failed:', e);
+        btn.textContent = '↻ Refresh';
+        btn.disabled = false;
+    }
+}

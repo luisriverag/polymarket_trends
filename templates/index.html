@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Polymarket Trends</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <div class="logo">
+                <span class="logo-icon">◈</span>
+                <span>Polymarket Trends</span>
+            </div>
+            <nav>
+                <a href="#volume">Volume</a>
+                <a href="#new-markets">New</a>
+                <a href="#whales">Whales</a>
+                <a href="#movers">Movers</a>
+                <a href="#insiders">Insiders</a>
+                <a href="#resolution">Resolutions</a>
+                <button id="refresh-btn" onclick="refreshData()">↻ Refresh</button>
+            </nav>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">24h Volume</div>
+                <div class="stat-value">${{ "%.2f"|format(total_volume/1e6) }}M</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Active Markets</div>
+                <div class="stat-value">{{ active_markets }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Avg Volume/Market</div>
+                <div class="stat-value">${{ "%.2f"|format(avg_volume/1e3) }}K</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Resolved (Yes)</div>
+                <div class="stat-value yes">{{ closed_stats.yes_resolved }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Resolved (No)</div>
+                <div class="stat-value no">{{ closed_stats.no_resolved }}</div>
+            </div>
+        </div>
+        {% if fetched_at %}
+        <div class="last-updated">
+            Last updated: {{ fetched_at[:19] if fetched_at else 'N/A' }}
+        </div>
+        {% endif %}
+    </section>
+
+    <main>
+        <section id="volume" class="chart-section">
+            <h2>Volume Trends (30 Days)</h2>
+            <div class="chart-container">
+                <canvas id="volumeChart"></canvas>
+            </div>
+        </section>
+
+        <section id="events" class="events-section">
+            <h2>🔥 Hot Events</h2>
+            <p class="section-desc">Top events by trading volume</p>
+            <div class="events-grid">
+                {% if events %}
+                    {% for event in events[:12] %}
+                    <div class="event-card" onclick="window.open('{{ event.url }}', '_blank')">
+                        <div class="event-question">{{ event.question }}</div>
+                        <div class="event-volume">${{ "%.2f"|format(event.volume/1e6) }}M</div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state"><p>Loading events...</p></div>
+                {% endif %}
+            </div>
+        </section>
+
+        <section id="whales" class="whales-section">
+            <h2>🐋 Whale Trackers</h2>
+            <p class="section-desc">Top traders by volume & performance (>$10K positions)</p>
+            <div class="whales-grid">
+                <div class="whales-column">
+                    <h3>Top Traders by Volume</h3>
+                    <div class="trader-list">
+                        {% if leaderboard %}
+                            {% for trader in leaderboard[:10] %}
+                            <div class="trader-card" onclick="window.open('{{ trader.url }}', '_blank')">
+                                <div class="trader-rank">#{{ trader.rank }}</div>
+                                <div class="trader-info">
+                                    <div class="trader-address">{{ trader.username or trader.address }}</div>
+                                    <div class="trader-stats">
+                                        <span class="pnl" style="color: {{ '#3fb950' if trader.pnl > 0 else '#f85149' }}">${{ "%.2f"|format(trader.pnl/1000) }}K PnL</span>
+                                    </div>
+                                </div>
+                                <div class="trader-volume">${{ "%.1f"|format(trader.volume/1e6) }}M</div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="empty-state"><p>No trader data available</p></div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="whales-column">
+                    <h3>Top Holders</h3>
+                    <div class="trader-list">
+                        {% if top_holders %}
+                            {% for holder in top_holders[:10] %}
+                            <div class="trader-card" onclick="window.open('{{ holder.url }}', '_blank')">
+                                <div class="trader-rank">◈</div>
+                                <div class="trader-info">
+                                    <div class="trader-address">{{ holder.address }}</div>
+                                    <div class="trader-stats">
+                                        <span class="markets">{{ holder.markets }} markets</span>
+                                    </div>
+                                </div>
+                                <div class="trader-volume">${{ "%.2f"|format(holder.total_value/1e6) }}M</div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="empty-state"><p>Holder data unavailable</p></div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="movers" class="movers-section">
+            <h2>📈 Market Movers</h2>
+            <p class="section-desc">Markets with significant price changes (>5%) and high volume</p>
+            <div class="movers-grid">
+                {% if market_moves %}
+                    {% for mover in market_moves %}
+                    <div class="mover-card {{ 'mover-up' if mover.direction == 'Up' else 'mover-down' }}" onclick="window.open('{{ mover.url }}', '_blank')">
+                        <div class="mover-direction">{{ mover.direction }} {{ "%.1f"|format(mover.change) }}%</div>
+                        <div class="mover-question">{{ mover.question }}</div>
+                        <div class="mover-details">
+                            <span class="mover-price">{{ "%.1f"|format(mover.price) }}%</span>
+                            <span class="mover-vol">${{ "%.1f"|format(mover.volume/1e6) }}M</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state"><p>No significant movers detected</p></div>
+                {% endif %}
+            </div>
+            <div class="category-breakdown">
+                <h3>Category Volume</h3>
+                <div class="category-bars">
+                    {% for cat, vol in categories %}
+                    <div class="category-bar">
+                        <div class="category-label">{{ cat }}</div>
+                        <div class="category-bar-track">
+                            <div class="category-bar-fill" style="width: {{ (vol / categories[0][1] * 100)|int }}%"></div>
+                        </div>
+                        <div class="category-value">${{ "%.1f"|format(vol/1e6) }}M</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+
+        <section id="insiders" class="insider-section">
+            <h2>🔍 Insider Signals</h2>
+            <p class="section-desc">High conviction markets (>70% or <30% probability with high volume)</p>
+            <div class="insider-grid">
+                {% if insider_signals %}
+                    {% for signal in insider_signals %}
+                    <div class="insider-card {{ 'insider-yes' if signal.direction == 'Yes' else 'insider-no' }}" onclick="window.open('{{ signal.url }}', '_blank')">
+                        <div class="insider-direction">{{ signal.direction }}</div>
+                        <div class="insider-question">{{ signal.question }}</div>
+                        <div class="insider-details">
+                            <span class="insider-prob">{{ "%.1f"|format(signal.probability) }}%</span>
+                            <span class="insider-vol">${{ "%.1f"|format(signal.volume/1e6) }}M</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state"><p>No insider signals detected</p></div>
+                {% endif %}
+            </div>
+        </section>
+
+        <div class="two-column">
+            <section id="new-markets" class="table-section">
+                <h2>New Markets</h2>
+                <div class="table-wrapper">
+                    <table class="markets-table">
+                        <thead>
+                            <tr>
+                                <th>Question</th>
+                                <th>Category</th>
+                                <th>Volume</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for market in new_markets %}
+                            <tr onclick="window.open('{{ market.url }}', '_blank')">
+                                <td class="question-cell">{{ market.question }}</td>
+                                <td><span class="category-tag">{{ market.category }}</span></td>
+                                <td class="volume-cell">${{ "%.2f"|format((market.volume|float)/1e6) }}M</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="resolution" class="resolution-section">
+                <h2>Underdog Wins</h2>
+                <p class="section-desc">Markets where the less likely outcome resolved (probability &lt;50%)</p>
+                <div class="underdog-list">
+                    {% if underdogs %}
+                        {% for market in underdogs %}
+                        <div class="underdog-card">
+                            <div class="underdog-question">{{ market.question[:70] }}{{ '...' if market.question|length > 70 else '' }}</div>
+                            <div class="underdog-details">
+                                <span class="outcome-badge">{{ market.outcome }}</span>
+                                <span class="prob">{{ "%.1f"|format(market.probability) }}% at close</span>
+                                <span class="vol">${{ "%.1f"|format((market.volume|float)/1e6) }}M vol</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty-state">
+                            <p>No underdog data available</p>
+                            <small>Resolved markets with odds data will appear here</small>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="resolution-chart">
+                    <canvas id="resolutionChart"></canvas>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer>
+        <p>Data from <a href="https://polymarket.com" target="_blank">Polymarket</a> API • Auto-refreshes every 5 min</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script>
+        const volumeData = {{ volume_history|tojson }};
+        const closedStats = {{ closed_stats|tojson }};
+        initCharts(volumeData, closedStats);
+        setInterval(refreshData, 300000);
+    </script>
+</body>
+</html>

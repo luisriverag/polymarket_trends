@@ -141,7 +141,13 @@
 
         <section id="traders" class="mece-section">
             <h2>🐋 Top Traders</h2>
-            <p class="section-desc">By volume & PnL (weekly/monthly/all)</p>
+            <div class="trader-controls">
+                <select onchange="sortTraders(this.value)">
+                    <option value="volume">Sort by Volume</option>
+                    <option value="pnl">Sort by PnL</option>
+                    <option value="winrate">Sort by Win Rate</option>
+                </select>
+            </div>
             <div class="trader-table">
                 <div class="trader-header">
                     <span>#</span>
@@ -150,74 +156,215 @@
                     <span>PnL</span>
                     <span>Volume</span>
                 </div>
+                <div id="trader-list">
                 {% for trader in leaderboard[:15] %}
                 <div class="trader-row" onclick="window.open('{{ trader.url }}', '_blank')">
                     <span class="trader-rank">#{{ loop.index }}</span>
                     <span class="trader-name">{{ trader.username or trader.address }}</span>
-                    <span class="trader-wr" style="color: {{ '#3fb950' if trader.win_rate > 50 else '#f85149' }}">{{ "%.0f"|format(trader.win_rate) }}%</span>
+                    <span class="trader-wr">{{ "N/A" if trader.win_rate is none else (trader.win_rate|int|string + "%") }}</span>
                     <span class="trader-pnl" style="color: {{ '#3fb950' if trader.pnl > 0 else '#f85149' }}">{{ "+" if trader.pnl > 0 }}{{ "%.1f"|format(trader.pnl/1000) }}K</span>
                     <span class="trader-vol">${{ "%.1f"|format(trader.volume/1e6) }}M</span>
                 </div>
                 {% endfor %}
+                </div>
             </div>
+            {% if leaderboard|length > 15 %}
+            <div class="pagination" id="trader-pagination">
+                <button onclick="showTraderPage(-1)">← Prev</button>
+                <span id="trader-page">1</span>
+                <button onclick="showTraderPage(1)">Next →</button>
+            </div>
+            {% endif %}
+            
+            <script>
+                const traderData = {{ leaderboard|tojson }};
+                let traderPage = 1;
+                const traderPageSize = 15;
+                let currentTraderSort = 'volume';
+                
+                function sortTraders(sortBy) {
+                    currentTraderSort = sortBy;
+                    traderPage = 1;
+                    renderTraders();
+                }
+                
+                function renderTraders() {
+                    let sorted = [...traderData];
+                    
+                    if (currentTraderSort === 'pnl') {
+                        sorted.sort((a, b) => (b.pnl || 0) - (a.pnl || 0));
+                    } else if (currentTraderSort === 'winrate') {
+                        sorted.sort((a, b) => (b.win_rate || 0) - (a.win_rate || 0));
+                    } else {
+                        sorted.sort((a, b) => (b.volume || 0) - (a.volume || 0));
+                    }
+                    
+                    const start = (traderPage - 1) * traderPageSize;
+                    const end = start + traderPageSize;
+                    const pageData = sorted.slice(start, end);
+                    
+                    const list = document.getElementById('trader-list');
+                    list.innerHTML = pageData.map((t, i) => 
+                        `<div class="trader-row" onclick="window.open('${t.url || '#'}', '_blank')">
+                            <span class="trader-rank">#${start + i + 1}</span>
+                            <span class="trader-name">${t.username || t.address || 'Unknown'}</span>
+                            <span class="trader-wr">${t.win_rate !== null ? Math.round(t.win_rate) + '%' : 'N/A'}</span>
+                            <span class="trader-pnl" style="color: ${(t.pnl || 0) > 0 ? '#3fb950' : '#f85149'}">${(t.pnl || 0) > 0 ? '+' : ''}${(Math.round((t.pnl || 0) / 100) / 10).toFixed(1)}K</span>
+                            <span class="trader-vol">$${((t.volume || 0) / 1000000).toFixed(1)}M</span>
+                        </div>`
+                    ).join('');
+                    
+                    document.getElementById('trader-page').textContent = traderPage;
+                }
+                
+                function showTraderPage(delta) {
+                    const totalPages = Math.ceil(traderData.length / traderPageSize);
+                    traderPage = Math.max(1, Math.min(totalPages, traderPage + delta));
+                    renderTraders();
+                }
+            </script>
         </section>
 
         <section id="resolution" class="resolution-section">
             <h2>🏆 Resolutions</h2>
-            <div class="resolution-tabs">
-                <div class="resolution-tab active" data-tab="pending">Pending {{ resolutions.pending|length }}</div>
-                <div class="resolution-tab" data-tab="yes">Yes {{ resolutions.yes|length }}</div>
-                <div class="resolution-tab" data-tab="no">No {{ resolutions.no|length }}</div>
-                <div class="resolution-tab" data-tab="underdogs">Underdogs {{ resolutions.underdogs|length }}</div>
+            
+            <div class="resolution-grid">
+                <div class="resolution-column">
+                    <div class="column-header">
+                        <h3>✅ Resolved</h3>
+                        <div class="sort-controls">
+                            <select onchange="sortResolutions('resolved', this.value)">
+                                <option value="volume">By Volume</option>
+                                <option value="date">By Date</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="resolution-list" id="resolved-list">
+                        {% for r in resolutions.resolved[:10] %}
+                        <div class="resolved-card {{ 'yes' if r.outcome == 'Yes' else 'no' }}" onclick="window.open('{{ r.url }}', '_blank')">
+                            <span class="resolved-outcome">{{ r.outcome }}</span>
+                            <span class="resolved-question">
+                                {{ r.question }}
+                                {% if r.is_repeat %}<span class="repeat-tag">🔄</span>{% endif %}
+                            </span>
+                            <span class="resolved-price">{{ "%.0f"|format(r.close_price) }}%</span>
+                            <span class="resolved-vol">${{ "%.1f"|format(r.volume/1e6) }}M</span>
+                        </div>
+                        {% else %}
+                        <div class="empty-state"><p>No resolution data available</p></div>
+                        {% endfor %}
+                    </div>
+                    {% if resolutions.resolved|length > 10 %}
+                    <div class="pagination" id="resolved-pagination">
+                        <button onclick="showPage('resolved', -1)">← Prev</button>
+                        <span id="resolved-page">1</span>
+                        <button onclick="showPage('resolved', 1)">Next →</button>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="resolution-column">
+                    <div class="column-header">
+                        <h3>⏳ Pending Resolution</h3>
+                        <div class="sort-controls">
+                            <select onchange="sortResolutions('pending', this.value)">
+                                <option value="volume">By Volume</option>
+                                <option value="date">By Date</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="resolution-list" id="pending-list">
+                        {% for r in resolutions.pending[:10] %}
+                        <div class="resolved-card pending" onclick="window.open('{{ r.url }}', '_blank')">
+                            <span class="resolved-outcome">{% if r.is_upcoming %}📅{% else %}⏳{% endif %}</span>
+                            <span class="resolved-question">
+                                {{ r.question }}
+                                {% if r.is_repeat %}<span class="repeat-tag">🔄</span>{% endif %}
+                            </span>
+                            <span class="resolved-price">{{ "%.0f"|format(r.close_price) }}%</span>
+                            <span class="resolved-date">{{ r.end_date }}</span>
+                        </div>
+                        {% else %}
+                        <div class="empty-state"><p>No pending resolutions</p></div>
+                        {% endfor %}
+                    </div>
+                    {% if resolutions.pending|length > 10 %}
+                    <div class="pagination" id="pending-pagination">
+                        <button onclick="showPage('pending', -1)">← Prev</button>
+                        <span id="pending-page">1</span>
+                        <button onclick="showPage('pending', 1)">Next →</button>
+                    </div>
+                    {% endif %}
+                </div>
             </div>
-            <div class="resolution-content">
-                <div class="resolution-list active" id="tab-pending">
-                    {% for r in resolutions.pending[:15] %}
-                    <div class="resolved-card pending" onclick="window.open('{{ r.url }}', '_blank')">
-                        <span class="resolved-outcome">⏳</span>
-                        <span class="resolved-question">{{ r.question }}</span>
-                        <span class="resolved-price">{{ "%.0f"|format(r.close_price) }}%</span>
-                        <span class="resolved-date">{{ r.end_date }}</span>
-                    </div>
-                    {% else %}
-                    <div class="empty-state"><p>No pending resolutions</p></div>
-                    {% endfor %}
-                </div>
-                <div class="resolution-list" id="tab-yes">
-                    {% for r in resolutions.yes[:10] %}
-                    <div class="resolved-card yes" onclick="window.open('{{ r.url }}', '_blank')">
-                        <span class="resolved-outcome">YES</span>
-                        <span class="resolved-question">{{ r.question }}</span>
-                        <span class="resolved-price">{{ "%.0f"|format(r.close_price) }}%</span>
-                        <span class="resolved-vol">${{ "%.1f"|format(r.volume/1e6) }}M</span>
-                    </div>
-                    {% else %}
-                    <div class="empty-state"><p>No Yes resolutions</p></div>
-                    {% endfor %}
-                </div>
-                <div class="resolution-list" id="tab-no">
-                    {% for r in resolutions.no[:10] %}
-                    <div class="resolved-card no" onclick="window.open('{{ r.url }}', '_blank')">
-                        <span class="resolved-outcome">NO</span>
-                        <span class="resolved-question">{{ r.question }}</span>
-                        <span class="resolved-price">{{ "%.0f"|format(r.close_price) }}%</span>
-                        <span class="resolved-vol">${{ "%.1f"|format(r.volume/1e6) }}M</span>
-                    </div>
-                    {% else %}
-                    <div class="empty-state"><p>No No resolutions</p></div>
-                    {% endfor %}
-                </div>
-                <div class="resolution-list" id="tab-underdogs">
-                    {% for r in resolutions.underdogs[:10] %}
-                    <div class="resolved-card underdog">
-                        <span class="resolved-outcome">🐋</span>
-                        <span class="resolved-question">{{ r.question }}</span>
-                        <span class="resolved-price">{{ "%.0f"|format(r.close_price) }}%</span>
-                        <span class="resolved-vol">${{ "%.1f"|format(r.volume/1e6) }}M</span>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
+            
+            <script>
+                const resolvedByVol = {{ resolutions.resolved|tojson }};
+                const pendingByVol = {{ resolutions.pending|tojson }};
+                const resolvedByDate = {{ resolutions.resolved_by_date|tojson }};
+                const pendingByDate = {{ resolutions.pending_by_date|tojson }};
+                
+                let resolvedPage = 1;
+                let pendingPage = 1;
+                const pageSize = 10;
+                
+                function sortResolutions(type, sortBy) {
+                    const data = sortBy === 'date' 
+                        ? (type === 'resolved' ? resolvedByDate : pendingByDate)
+                        : (type === 'resolved' ? resolvedByVol : pendingByVol);
+                    
+                    if (type === 'resolved') {
+                        resolvedPage = 1;
+                        renderResolutions(data);
+                    } else {
+                        pendingPage = 1;
+                        renderPending(data);
+                    }
+                }
+                
+                function renderResolutions(data) {
+                    const start = (resolvedPage - 1) * pageSize;
+                    const end = start + pageSize;
+                    const list = document.getElementById('resolved-list');
+                    list.innerHTML = data.slice(start, end).map(r => 
+                        `<div class="resolved-card ${r.outcome === 'Yes' ? 'yes' : 'no'}" onclick="window.open('${r.url}', '_blank')">
+                            <span class="resolved-outcome">${r.outcome}</span>
+                            <span class="resolved-question">${r.question}${r.is_repeat ? '<span class="repeat-tag">🔄</span>' : ''}</span>
+                            <span class="resolved-price">${Math.round(r.close_price)}%</span>
+                            <span class="resolved-vol">$${(r.volume/1000000).toFixed(1)}M</span>
+                        </div>`
+                    ).join('') || '<div class="empty-state"><p>No data</p></div>';
+                    document.getElementById('resolved-page').textContent = resolvedPage;
+                }
+                
+                function renderPending(data) {
+                    const start = (pendingPage - 1) * pageSize;
+                    const end = start + pageSize;
+                    const list = document.getElementById('pending-list');
+                    list.innerHTML = data.slice(start, end).map(r => 
+                        `<div class="resolved-card pending" onclick="window.open('${r.url}', '_blank')">
+                            <span class="resolved-outcome">${r.is_upcoming ? '📅' : '⏳'}</span>
+                            <span class="resolved-question">${r.question}${r.is_repeat ? '<span class="repeat-tag">🔄</span>' : ''}</span>
+                            <span class="resolved-price">${Math.round(r.close_price)}%</span>
+                            <span class="resolved-date">${r.end_date}</span>
+                        </div>`
+                    ).join('') || '<div class="empty-state"><p>No data</p></div>';
+                    document.getElementById('pending-page').textContent = pendingPage;
+                }
+                
+                function showPage(type, delta) {
+                    const data = type === 'resolved' ? resolvedByVol : pendingByVol;
+                    const totalPages = Math.ceil(data.length / pageSize);
+                    
+                    if (type === 'resolved') {
+                        resolvedPage = Math.max(1, Math.min(totalPages, resolvedPage + delta));
+                        renderResolutions(data);
+                    } else {
+                        pendingPage = Math.max(1, Math.min(totalPages, pendingPage + delta));
+                        renderPending(data);
+                    }
+                }
+            </script>
         </section>
     </main>
 
@@ -230,7 +377,7 @@
         const closedStats = {{ closed_stats|tojson }};
         const sentimentDist = {{ sentiment.distribution|tojson }};
         initDistributionChart(sentimentDist);
-        setInterval(refreshData, 300000);
+        setInterval(refreshData, 180000);
     </script>
 </body>
 </html>

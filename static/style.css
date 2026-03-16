@@ -1073,3 +1073,151 @@ footer a:hover {
 .distribution-chart canvas {
     max-height: 120px;
 }
+
+.mece-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.mece-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+}
+
+.mece-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.mece-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+}
+
+.mece-card.move-up {
+    border-left: 3px solid var(--success);
+}
+
+.mece-card.move-down {
+    border-left: 3px solid var(--danger);
+}
+
+.mece-rank {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent);
+    min-width: 30px;
+}
+
+.mece-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.mece-title {
+    font-size: 13px;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 4px;
+}
+
+.mece-stats {
+    display: flex;
+    gap: 12px;
+    font-size: 11px;
+}
+
+.mece-vol {
+    color: var(--success);
+    font-weight: 600;
+}
+
+.mece-change {
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.mece-change.up {
+    color: var(--success);
+    background: rgba(63, 185, 80, 0.15);
+}
+
+.mece-change.down {
+    color: var(--danger);
+    background: rgba(248, 81, 73, 0.15);
+}
+
+.mece-price {
+    color: var(--text-secondary);
+}
+
+.trader-table {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.trader-header {
+    display: grid;
+    grid-template-columns: 40px 1fr 80px 80px 80px;
+    gap: 8px;
+    padding: 12px 16px;
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+}
+
+.trader-row {
+    display: grid;
+    grid-template-columns: 40px 1fr 80px 80px 80px;
+    gap: 8px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+    align-items: center;
+}
+
+.trader-row:hover {
+    background: var(--bg-hover);
+}
+
+.trader-row:last-child {
+    border-bottom: none;
+}
+
+.trader-rank {
+    font-weight: 600;
+    color: var(--accent);
+}
+
+.trader-name {
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.trader-wr, .trader-pnl, .trader-vol {
+    text-align: right;
+    font-weight: 500;
+}

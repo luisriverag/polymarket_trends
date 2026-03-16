@@ -349,15 +349,20 @@ def analyze_categories(markets):
     return sorted(categories.items(), key=lambda x: x[1], reverse=True)
 
 def analyze_sentiment(markets):
-    sentiment = {"bullish": 0, "bearish": 0, "neutral": 0}
+    sentiment = {"bullish": 0, "bearish": 0, "neutral": 0, "overall": 0.5}
+    total = 0
     for market in markets:
         price = get_yes_price(market)
+        sentiment["overall"] += price
+        total += 1
         if price > 0.6:
             sentiment["bullish"] += 1
         elif price < 0.4:
             sentiment["bearish"] += 1
         else:
             sentiment["neutral"] += 1
+    if total > 0:
+        sentiment["overall"] = sentiment["overall"] / total
     return sentiment
 
 def process_events(events, markets):

@@ -162,6 +162,13 @@ async function refreshData() {
     }
 }
 
+document.addEventListener('DOMContentLoaded', function() {
+    const refreshBtn = document.getElementById('refresh-btn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', refreshData);
+    }
+});
+
 function initDistributionChart(distribution) {
     const ctx = document.getElementById('distributionChart');
     if (!ctx) return;

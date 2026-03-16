@@ -340,6 +340,64 @@ def analyze_reversals(markets):
             continue
     return sorted(reversals, key=lambda x: abs(x["day_change"]), reverse=True)[:15]
 
+def analyze_sentiment(markets):
+    sentiment_data = {
+        "overall": 0,
+        "count": 0,
+        "bullish": 0,
+        "bearish": 0,
+        "neutral": 0,
+        "categories": {},
+        "hot_takes": []
+    }
+    
+    for market in markets:
+        try:
+            volume = float(market.get("volume24hr", 0) or 0)
+            if volume < 1000:
+                continue
+                
+            current_price = get_yes_price(market)
+            day_change = float(market.get("oneDayPriceChange", 0) or 0)
+            
+            sentiment_data["count"] += 1
+            sentiment_data["overall"] += current_price
+            
+            if current_price > 0.6:
+                sentiment_data["bullish"] += 1
+            elif current_price < 0.4:
+                sentiment_data["bearish"] += 1
+            else:
+                sentiment_data["neutral"] += 1
+            
+            tags = market.get("tags", [])
+            cat = tags[0] if tags else "Other"
+            if cat not in sentiment_data["categories"]:
+                sentiment_data["categories"][cat] = {"yes": 0, "no": 0, "count": 0}
+            sentiment_data["categories"][cat]["count"] += 1
+            sentiment_data["categories"][cat]["yes"] += current_price
+            
+            if abs(day_change) > 0.05 and volume > 5000:
+                direction = "📈" if day_change > 0 else "📉"
+                sentiment_data["hot_takes"].append({
+                    "question": market.get("question", "Unknown")[:50],
+                    "price": current_price * 100,
+                    "change": day_change * 100,
+                    "direction": direction,
+                    "url": f"https://polymarket.com/event/{market.get('slug', '')}"
+                })
+        except:
+            continue
+    
+    sentiment_data["hot_takes"] = sentiment_data["hot_takes"][:10]
+    
+    if sentiment_data["count"] > 0:
+        sentiment_data["overall"] = sentiment_data["overall"] / sentiment_data["count"]
+    else:
+        sentiment_data["overall"] = 0.5
+    
+    return sentiment_data
+
 def analyze_insiders(markets):
     insiders = []
     for market in markets:
@@ -539,18 +597,64 @@ def index():
     insiders = analyze_insiders(data.get("markets", []))
     resolutions = analyze_resolutions(data.get("closed_markets", []))
     categories = analyze_categories(data.get("markets", []))
+    sentiment = analyze_sentiment(data.get("markets", []))
     
     leaderboard_data = []
     for i, trader in enumerate(leaderboard):
         addr = trader.get("proxyWallet", "")
+        vol = float(trader.get("vol", 0) or 0)
+        pnl = float(trader.get("pnl", 0) or 0)
+        trades = int(trader.get("tradeCount", 0) or 0)
+        win_rate = float(trader.get("winRate", 0) or 0) * 100
+        
         leaderboard_data.append({
             "rank": i + 1,
-            "address": addr[:8] + "..." if addr else "Unknown",
+            "address": addr[:10] + "..." if addr else "Unknown",
+            "full_address": addr,
             "username": trader.get("userName", ""),
-            "volume": trader.get("vol", 0),
-            "pnl": trader.get("pnl", 0),
+            "volume": vol,
+            "pnl": pnl,
+            "trades": trades,
+            "win_rate": win_rate,
+            "period": trader.get("period", "ALL"),
             "url": f"https://polymarket.com/profile/{addr}"
         })
+    
+    top_traders_yes = []
+    top_traders_no = []
+    for market in data.get("markets", [])[:50]:
+        vol = float(market.get("volume24hr", 0) or 0)
+        if vol > 10000:
+            price = get_yes_price(market)
+            if price > 0.7:
+                top_traders_yes.append({
+                    "question": market.get("question", "Unknown")[:50],
+                    "price": price * 100,
+                    "volume": vol,
+                    "url": f"https://polymarket.com/event/{market.get('slug', '')}"
+                })
+            elif price < 0.3:
+                top_traders_no.append({
+                    "question": market.get("question", "Unknown")[:50],
+                    "price": (1 - price) * 100,
+                    "volume": vol,
+                    "url": f"https://polymarket.com/event/{market.get('slug', '')}"
+                })
+    
+    liquidity_analysis = []
+    for market in data.get("markets", [])[:100]:
+        vol = float(market.get("volume24hr", 0) or 0)
+        liq = float(market.get("liquidity", 0) or 0)
+        if liq > 5000 and vol > 1000:
+            price = get_yes_price(market)
+            liquidity_analysis.append({
+                "question": market.get("question", "Unknown")[:50],
+                "liquidity": liq,
+                "volume": vol,
+                "price": price * 100,
+                "url": f"https://polymarket.com/event/{market.get('slug', '')}"
+            })
+    liquidity_analysis = sorted(liquidity_analysis, key=lambda x: x["liquidity"], reverse=True)[:10]
     
     insider_signals = []
     for market in data.get("markets", [])[:30]:
@@ -591,6 +695,8 @@ def index():
                          resolutions=resolutions,
                          categories=categories,
                          events=events_data,
+                         liquidity_analysis=liquidity_analysis,
+                         sentiment=sentiment,
                          fetched_at=data.get("fetched_at"))
 
 @app.route("/api/refresh")

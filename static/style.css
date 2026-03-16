@@ -951,3 +951,107 @@ footer a:hover {
     color: var(--success);
     font-size: 11px;
 }
+
+.sentiment-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.sentiment-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+@media (max-width: 600px) {
+    .sentiment-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.sentiment-card {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+}
+
+.sentiment-value {
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.sentiment-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+}
+
+.hot-takes {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+}
+
+.hot-takes h3 {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+}
+
+.hot-takes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 8px;
+}
+
+.hot-take-card {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 12px;
+}
+
+.hot-take-card:hover {
+    border-color: var(--accent);
+}
+
+.hot-direction {
+    font-size: 14px;
+}
+
+.hot-question {
+    flex: 1;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.hot-change {
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.hot-change.up {
+    color: var(--success);
+    background: rgba(63, 185, 80, 0.15);
+}
+
+.hot-change.down {
+    color: var(--danger);
+    background: rgba(248, 81, 73, 0.15);
+}

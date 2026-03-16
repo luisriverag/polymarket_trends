@@ -241,13 +241,28 @@ def analyze_underdogs(closed_markets):
 
 def fetch_leaderboard():
     try:
-        params = {"limit": 20, "timePeriod": "WEEK", "orderBy": "VOL"}
-        resp = requests.get(f"{DATA_API}/v1/leaderboard", params=params, timeout=15)
-        resp.raise_for_status()
-        data = resp.json()
-        if isinstance(data, list):
-            return data[:15]
-        return []
+        all_traders = []
+        for period in ["WEEK", "MONTH", "ALL"]:
+            for order in ["VOL", "PNL"]:
+                params = {"limit": 20, "timePeriod": period, "orderBy": order}
+                resp = requests.get(f"{DATA_API}/v1/leaderboard", params=params, timeout=10)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    if isinstance(data, list):
+                        for t in data:
+                            t["period"] = period
+                            t["order"] = order
+                        all_traders.extend(data)
+        
+        seen = set()
+        unique_traders = []
+        for t in all_traders:
+            addr = t.get("proxyWallet", "")
+            if addr and addr not in seen:
+                seen.add(addr)
+                unique_traders.append(t)
+        
+        return unique_traders[:20]
     except Exception as e:
         print(f"Error fetching leaderboard: {e}")
         return []
@@ -255,24 +270,194 @@ def fetch_leaderboard():
 def fetch_top_holders():
     return []
 
-def analyze_market_moves(markets):
-    movers = []
+def get_yes_price(market):
+    outcome_prices = market.get("outcomePrices", [])
+    if outcome_prices and len(outcome_prices) > 0:
+        try:
+            return float(outcome_prices[0])
+        except:
+            pass
+    val = market.get("yesPrice")
+    if val:
+        try:
+            return float(val)
+        except:
+            pass
+    return 0.5
+
+def get_no_price(market):
+    outcome_prices = market.get("outcomePrices", [])
+    if outcome_prices and len(outcome_prices) > 1:
+        try:
+            return float(outcome_prices[1])
+        except:
+            pass
+    val = market.get("noPrice")
+    if val:
+        try:
+            return float(val)
+        except:
+            pass
+    return 0.5
+
+def analyze_reversals(markets):
+    reversals = []
     for market in markets:
         try:
-            price_change = float(market.get("oneDayPriceChange", 0) or 0)
+            day_change = float(market.get("oneDayPriceChange", 0) or 0)
+            week_change = float(market.get("oneWeekPriceChange", 0) or 0)
             volume = float(market.get("volume24hr", 0) or 0)
-            if abs(price_change) > 0.05 and volume > 10000:
-                movers.append({
-                    "question": market.get("question", "Unknown")[:60],
-                    "change": price_change * 100,
-                    "volume": volume,
-                    "price": float(market.get("yesPrice", 0.5) or 0.5) * 100,
-                    "direction": "Up" if price_change > 0 else "Down",
-                    "url": f"https://polymarket.com/event/{market.get('slug', '')}"
-                })
+            current_price = get_yes_price(market)
+            
+            if volume > 1000:
+                reversal_score = 0
+                direction = ""
+                
+                if day_change < -0.10 and week_change > 0.02:
+                    reversal_score = abs(day_change) + abs(week_change)
+                    direction = "↩️ Recovering"
+                elif day_change > 0.10 and week_change < -0.02:
+                    reversal_score = abs(day_change) + abs(week_change)
+                    direction = "↪️ Pulling Back"
+                elif day_change > 0.08:
+                    reversal_score = abs(day_change)
+                    direction = "🚀 Surging"
+                elif day_change < -0.08:
+                    reversal_score = abs(day_change)
+                    direction = "💥 Crashing"
+                
+                if reversal_score > 0.05:
+                    reversals.append({
+                        "question": market.get("question", "Unknown")[:55],
+                        "day_change": day_change * 100,
+                        "week_change": week_change * 100,
+                        "volume": volume,
+                        "price": current_price * 100,
+                        "direction": direction,
+                        "url": f"https://polymarket.com/event/{market.get('slug', '')}"
+                    })
         except:
             continue
-    return sorted(movers, key=lambda x: abs(x["change"]), reverse=True)[:10]
+    return sorted(reversals, key=lambda x: abs(x["day_change"]), reverse=True)[:15]
+
+def analyze_insiders(markets):
+    insiders = []
+    for market in markets:
+        try:
+            volume = float(market.get("volume24hr", 0) or 0)
+            liquidity = float(market.get("liquidity", 0) or 0)
+            current_price = get_yes_price(market)
+            day_change = float(market.get("oneDayPriceChange", 0) or 0)
+            
+            if volume > 2000 and liquidity > 1000:
+                signal = ""
+                conviction = 0
+                
+                if current_price > 0.80:
+                    signal = "Strong Yes"
+                    conviction = current_price
+                elif current_price < 0.20:
+                    signal = "Strong No"
+                    conviction = 1 - current_price
+                elif current_price > 0.65 and day_change > 0.01:
+                    signal = "Hot Yes"
+                    conviction = current_price * 0.6
+                elif current_price < 0.35 and day_change < -0.01:
+                    signal = "Hot No"
+                    conviction = (1 - current_price) * 0.6
+                elif day_change > 0.05 and current_price > 0.50:
+                    signal = "Rising Yes"
+                    conviction = day_change * 10
+                elif day_change < -0.05 and current_price < 0.50:
+                    signal = "Falling No"
+                    conviction = abs(day_change) * 10
+                
+                if signal and conviction > 0.3:
+                    insiders.append({
+                        "question": market.get("question", "Unknown")[:55],
+                        "signal": signal,
+                        "probability": current_price * 100,
+                        "volume": volume,
+                        "liquidity": liquidity,
+                        "day_change": day_change * 100,
+                        "url": f"https://polymarket.com/event/{market.get('slug', '')}"
+                    })
+        except:
+            continue
+    return sorted(insiders, key=lambda x: x["conviction"], reverse=True)[:15]
+
+def analyze_resolutions(closed_markets):
+    resolutions = {
+        "yes": [],
+        "no": [],
+        "underdogs": [],
+        "blowouts": []
+    }
+    
+    for market in closed_markets:
+        try:
+            outcome = market.get("outcome", "")
+            if not outcome:
+                continue
+            
+            question = market.get("question", "Unknown")
+            volume = float(market.get("volume", 0) or 0)
+            
+            if outcome == "Yes":
+                close_price = get_yes_price(market)
+                resolutions["yes"].append({
+                    "question": question[:60],
+                    "volume": volume,
+                    "close_price": close_price * 100,
+                    "url": f"https://polymarket.com/event/{market.get('slug', '')}"
+                })
+                
+                if close_price < 0.5 and volume > 1000:
+                    resolutions["underdogs"].append({
+                        "question": question[:60],
+                        "close_price": close_price * 100,
+                        "volume": volume,
+                        "url": f"https://polymarket.com/event/{market.get('slug', '')}"
+                    })
+                elif close_price > 0.85 and volume > 1000:
+                    resolutions["blowouts"].append({
+                        "question": question[:60],
+                        "close_price": close_price * 100,
+                        "volume": volume,
+                        "url": f"https://polymarket.com/event/{market.get('slug', '')}"
+                    })
+            else:
+                close_price = get_no_price(market)
+                resolutions["no"].append({
+                    "question": question[:60],
+                    "volume": volume,
+                    "close_price": close_price * 100,
+                    "url": f"https://polymarket.com/event/{market.get('slug', '')}"
+                })
+                
+                if close_price < 0.5 and volume > 1000:
+                    resolutions["underdogs"].append({
+                        "question": question[:60],
+                        "close_price": close_price * 100,
+                        "volume": volume,
+                        "url": f"https://polymarket.com/event/{market.get('slug', '')}"
+                    })
+                elif close_price > 0.85 and volume > 1000:
+                    resolutions["blowouts"].append({
+                        "question": question[:60],
+                        "close_price": close_price * 100,
+                        "volume": volume,
+                        "url": f"https://polymarket.com/event/{market.get('slug', '')}"
+                    })
+        except:
+            continue
+    
+    resolutions["yes"] = resolutions["yes"][:10]
+    resolutions["no"] = resolutions["no"][:10]
+    resolutions["underdogs"] = resolutions["underdogs"][:10]
+    resolutions["blowouts"] = resolutions["blowouts"][:10]
+    
+    return resolutions
 
 def analyze_categories(markets):
     categories = {}
@@ -348,7 +533,9 @@ def index():
     
     leaderboard = fetch_leaderboard()
     top_holders = fetch_top_holders()
-    market_moves = analyze_market_moves(data.get("markets", []))
+    reversals = analyze_reversals(data.get("markets", []))
+    insiders = analyze_insiders(data.get("markets", []))
+    resolutions = analyze_resolutions(data.get("closed_markets", []))
     categories = analyze_categories(data.get("markets", []))
     
     leaderboard_data = []
@@ -397,8 +584,9 @@ def index():
                          closed_stats=closed_stats,
                          leaderboard=leaderboard_data,
                          top_holders=top_holders,
-                         insider_signals=insider_signals[:10],
-                         market_moves=market_moves,
+                         insider_signals=insiders,
+                         reversals=reversals,
+                         resolutions=resolutions,
                          categories=categories,
                          events=events_data,
                          fetched_at=data.get("fetched_at"))

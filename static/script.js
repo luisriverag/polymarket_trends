@@ -161,3 +161,19 @@ async function refreshData() {
         btn.disabled = false;
     }
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    const tabs = document.querySelectorAll('.resolution-tab');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            tabs.forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+            
+            const tabId = this.getAttribute('data-tab');
+            document.querySelectorAll('.resolution-list').forEach(list => {
+                list.classList.remove('active');
+            });
+            document.getElementById('tab-' + tabId).classList.add('active');
+        });
+    });
+});

@@ -21,7 +21,7 @@
                 <a href="#volume">Volume</a>
                 <a href="#new-markets">New</a>
                 <a href="#whales">Whales</a>
-                <a href="#movers">Movers</a>
+                <a href="#reversals">Reversals</a>
                 <a href="#insiders">Insiders</a>
                 <a href="#resolution">Resolutions</a>
                 <button id="refresh-btn" onclick="refreshData()">↻ Refresh</button>
@@ -133,29 +133,33 @@
             </div>
         </section>
 
-        <section id="movers" class="movers-section">
-            <h2>📈 Market Movers</h2>
-            <p class="section-desc">Markets with significant price changes (>5%) and high volume</p>
-            <div class="movers-grid">
-                {% if market_moves %}
-                    {% for mover in market_moves %}
-                    <div class="mover-card {{ 'mover-up' if mover.direction == 'Up' else 'mover-down' }}" onclick="window.open('{{ mover.url }}', '_blank')">
-                        <div class="mover-direction">{{ mover.direction }} {{ "%.1f"|format(mover.change) }}%</div>
-                        <div class="mover-question">{{ mover.question }}</div>
-                        <div class="mover-details">
-                            <span class="mover-price">{{ "%.1f"|format(mover.price) }}%</span>
-                            <span class="mover-vol">${{ "%.1f"|format(mover.volume/1e6) }}M</span>
+        <section id="reversals" class="reversals-section">
+            <h2>↩️ Reversals</h2>
+            <p class="section-desc">Markets with big price swings - surging, crashing, or reversing</p>
+            <div class="reversals-grid">
+                {% if reversals %}
+                    {% for r in reversals %}
+                    <div class="reversal-card" onclick="window.open('{{ r.url }}', '_blank')">
+                        <div class="reversal-direction">{{ r.direction }}</div>
+                        <div class="reversal-question">{{ r.question }}</div>
+                        <div class="reversal-changes">
+                            <span>Day: <b style="color: {{ '#3fb950' if r.day_change > 0 else '#f85149' }}">{{ "+" if r.day_change > 0 }}{{ "%.1f"|format(r.day_change) }}%</b></span>
+                            <span>Week: <b style="color: {{ '#3fb950' if r.week_change > 0 else '#f85149' }}">{{ "+" if r.week_change > 0 }}{{ "%.1f"|format(r.week_change) }}%</b></span>
+                        </div>
+                        <div class="reversal-details">
+                            <span class="reversal-price">{{ "%.1f"|format(r.price) }}%</span>
+                            <span class="reversal-vol">${{ "%.1f"|format(r.volume/1e6) }}M</span>
                         </div>
                     </div>
                     {% endfor %}
                 {% else %}
-                    <div class="empty-state"><p>No significant movers detected</p></div>
+                    <div class="empty-state"><p>No reversals detected</p></div>
                 {% endif %}
             </div>
             <div class="category-breakdown">
-                <h3>Category Volume</h3>
+                <h3>📊 Category Volume</h3>
                 <div class="category-bars">
-                    {% for cat, vol in categories %}
+                    {% for cat, vol in categories[:6] %}
                     <div class="category-bar">
                         <div class="category-label">{{ cat }}</div>
                         <div class="category-bar-track">
@@ -170,15 +174,16 @@
 
         <section id="insiders" class="insider-section">
             <h2>🔍 Insider Signals</h2>
-            <p class="section-desc">High conviction markets (>70% or <30% probability with high volume)</p>
+            <p class="section-desc">High conviction trades - strong yes/no, whale positions, momentum plays</p>
             <div class="insider-grid">
                 {% if insider_signals %}
-                    {% for signal in insider_signals %}
-                    <div class="insider-card {{ 'insider-yes' if signal.direction == 'Yes' else 'insider-no' }}" onclick="window.open('{{ signal.url }}', '_blank')">
-                        <div class="insider-direction">{{ signal.direction }}</div>
+                    {% for signal in insider_signals[:12] %}
+                    <div class="insider-card" onclick="window.open('{{ signal.url }}', '_blank')">
+                        <div class="insider-signal {{ 'signal-strong' if 'Strong' in signal.signal else 'signal-whale' if 'Whale' in signal.signal else 'signal-momentum' }}">{{ signal.signal }}</div>
                         <div class="insider-question">{{ signal.question }}</div>
                         <div class="insider-details">
                             <span class="insider-prob">{{ "%.1f"|format(signal.probability) }}%</span>
+                            <span class="insider-day {{ 'up' if signal.day_change > 0 else 'down' }}">{{ "+" if signal.day_change > 0 }}{{ "%.1f"|format(signal.day_change) }}%</span>
                             <span class="insider-vol">${{ "%.1f"|format(signal.volume/1e6) }}M</span>
                         </div>
                     </div>
@@ -215,26 +220,71 @@
             </section>
 
             <section id="resolution" class="resolution-section">
-                <h2>Underdog Wins</h2>
-                <p class="section-desc">Markets where the less likely outcome resolved (probability &lt;50%)</p>
-                <div class="underdog-list">
-                    {% if underdogs %}
-                        {% for market in underdogs %}
-                        <div class="underdog-card">
-                            <div class="underdog-question">{{ market.question[:70] }}{{ '...' if market.question|length > 70 else '' }}</div>
-                            <div class="underdog-details">
-                                <span class="outcome-badge">{{ market.outcome }}</span>
-                                <span class="prob">{{ "%.1f"|format(market.probability) }}% at close</span>
-                                <span class="vol">${{ "%.1f"|format((market.volume|float)/1e6) }}M vol</span>
+                <h2>🏆 Resolutions</h2>
+                <p class="section-desc">Recent market resolutions - yes/no outcomes with volume</p>
+                <div class="resolution-tabs">
+                    <div class="resolution-tab active" data-tab="yes">Yes {{ resolutions.yes|length }}</div>
+                    <div class="resolution-tab" data-tab="no">No {{ resolutions.no|length }}</div>
+                    <div class="resolution-tab" data-tab="underdogs">Underdogs {{ resolutions.underdogs|length }}</div>
+                    <div class="resolution-tab" data-tab="blowouts">Blowouts {{ resolutions.blowouts|length }}</div>
+                </div>
+                <div class="resolution-content">
+                    <div class="resolution-list active" id="tab-yes">
+                        {% if resolutions.yes %}
+                            {% for r in resolutions.yes %}
+                            <div class="resolved-card yes" onclick="window.open('{{ r.url }}', '_blank')">
+                                <span class="resolved-outcome">YES</span>
+                                <span class="resolved-question">{{ r.question }}</span>
+                                <span class="resolved-price">{{ "%.0f"|format(r.close_price) }}%</span>
+                                <span class="resolved-vol">${{ "%.1f"|format(r.volume/1e6) }}M</span>
                             </div>
-                        </div>
-                        {% endfor %}
-                    {% else %}
-                        <div class="empty-state">
-                            <p>No underdog data available</p>
-                            <small>Resolved markets with odds data will appear here</small>
-                        </div>
-                    {% endif %}
+                            {% endfor %}
+                        {% else %}
+                            <div class="empty-state"><p>No Yes resolutions</p></div>
+                        {% endif %}
+                    </div>
+                    <div class="resolution-list" id="tab-no">
+                        {% if resolutions.no %}
+                            {% for r in resolutions.no %}
+                            <div class="resolved-card no" onclick="window.open('{{ r.url }}', '_blank')">
+                                <span class="resolved-outcome">NO</span>
+                                <span class="resolved-question">{{ r.question }}</span>
+                                <span class="resolved-price">{{ "%.0f"|format(r.close_price) }}%</span>
+                                <span class="resolved-vol">${{ "%.1f"|format(r.volume/1e6) }}M</span>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="empty-state"><p>No No resolutions</p></div>
+                        {% endif %}
+                    </div>
+                    <div class="resolution-list" id="tab-underdogs">
+                        {% if resolutions.underdogs %}
+                            {% for r in resolutions.underdogs %}
+                            <div class="resolved-card underdog" onclick="window.open('{{ r.url }}', '_blank')">
+                                <span class="resolved-outcome">🐋</span>
+                                <span class="resolved-question">{{ r.question }}</span>
+                                <span class="resolved-price">{{ "%.0f"|format(r.close_price) }}%</span>
+                                <span class="resolved-vol">${{ "%.1f"|format(r.volume/1e6) }}M</span>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="empty-state"><p>No underdog wins</p></div>
+                        {% endif %}
+                    </div>
+                    <div class="resolution-list" id="tab-blowouts">
+                        {% if resolutions.blowouts %}
+                            {% for r in resolutions.blowouts %}
+                            <div class="resolved-card blowout" onclick="window.open('{{ r.url }}', '_blank')">
+                                <span class="resolved-outcome">💥</span>
+                                <span class="resolved-question">{{ r.question }}</span>
+                                <span class="resolved-price">{{ "%.0f"|format(r.close_price) }}%</span>
+                                <span class="resolved-vol">${{ "%.1f"|format(r.volume/1e6) }}M</span>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="empty-state"><p>No blowouts</p></div>
+                        {% endif %}
+                    </div>
                 </div>
                 <div class="resolution-chart">
                     <canvas id="resolutionChart"></canvas>

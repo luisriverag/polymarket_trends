@@ -37,7 +37,25 @@ def init_sqlite():
 
 _sqlite_enabled = init_sqlite()
 
+def get_db():
+    return sqlite3.connect(DB_FILE)
+
 def load_history():
+    if _sqlite_enabled:
+        try:
+            conn = get_db()
+            c = conn.cursor()
+            c.execute("SELECT id, question, slug, outcome, end_date, first_seen, last_seen, resolved_at FROM market_history")
+            rows = c.fetchall()
+            conn.close()
+            history = {}
+            for row in rows:
+                history[row[0]] = {"question": row[1], "slug": row[2], "outcome": row[3], "end_date": row[4], "first_seen": row[5], "last_seen": row[6], "resolved_at": row[7]}
+            return history
+        except:
+            pass
+        return {}
+    
     try:
         if os.path.exists(HISTORY_FILE):
             with open(HISTORY_FILE, "r") as f:
@@ -47,6 +65,19 @@ def load_history():
     return {}
 
 def save_history(history):
+    if _sqlite_enabled:
+        try:
+            conn = get_db()
+            c = conn.cursor()
+            for m_id, data in history.items():
+                c.execute("INSERT OR REPLACE INTO market_history VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    (m_id, data.get("question"), data.get("slug"), data.get("outcome"), data.get("end_date"), data.get("first_seen"), data.get("last_seen"), data.get("resolved_at")))
+            conn.commit()
+            conn.close()
+        except:
+            pass
+        return
+    
     with open(HISTORY_FILE, "w") as f:
         json.dump(history, f)
 
@@ -88,34 +119,82 @@ def update_market_history(markets):
     return history
 
 def load_market_cache():
+    if not _sqlite_enabled:
+        try:
+            if os.path.exists(MARKET_CACHE_FILE):
+                with open(MARKET_CACHE_FILE, "r") as f:
+                    data = json.load(f)
+                    if time.time() - data.get("timestamp", 0) < MARKET_CACHE_TTL:
+                        return data.get("data")
+        except:
+            pass
+        return None
+    
     try:
-        if os.path.exists(MARKET_CACHE_FILE):
-            with open(MARKET_CACHE_FILE, "r") as f:
-                data = json.load(f)
-                if time.time() - data.get("timestamp", 0) < MARKET_CACHE_TTL:
-                    return data.get("data")
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT data, timestamp FROM analysis_cache WHERE key = 'markets'")
+        row = c.fetchone()
+        conn.close()
+        if row and time.time() - row[1] < 180:
+            return json.loads(row[0])
     except:
         pass
     return None
 
 def save_market_cache(data):
-    with open(MARKET_CACHE_FILE, "w") as f:
-        json.dump({"timestamp": time.time(), "data": data}, f)
+    if not _sqlite_enabled:
+        with open(MARKET_CACHE_FILE, "w") as f:
+            json.dump({"timestamp": time.time(), "data": data}, f)
+        return
+    
+    try:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("INSERT OR REPLACE INTO analysis_cache VALUES (?, ?, ?)", ("markets", json.dumps(data), time.time()))
+        conn.commit()
+        conn.close()
+    except:
+        pass
 
 def load_analysis_cache():
+    if not _sqlite_enabled:
+        try:
+            if os.path.exists(ANALYSIS_CACHE_FILE):
+                with open(ANALYSIS_CACHE_FILE, "r") as f:
+                    data = json.load(f)
+                    if time.time() - data.get("timestamp", 0) < ANALYSIS_CACHE_TTL:
+                        return data.get("data")
+        except:
+            pass
+        return None
+    
     try:
-        if os.path.exists(ANALYSIS_CACHE_FILE):
-            with open(ANALYSIS_CACHE_FILE, "r") as f:
-                data = json.load(f)
-                if time.time() - data.get("timestamp", 0) < ANALYSIS_CACHE_TTL:
-                    return data.get("data")
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT data, timestamp FROM analysis_cache WHERE key = 'analysis'")
+        row = c.fetchone()
+        conn.close()
+        if row and time.time() - row[1] < ANALYSIS_CACHE_TTL:
+            return json.loads(row[0])
     except:
         pass
     return None
 
 def save_analysis_cache(data):
-    with open(ANALYSIS_CACHE_FILE, "w") as f:
-        json.dump({"timestamp": time.time(), "data": data}, f)
+    if not _sqlite_enabled:
+        with open(ANALYSIS_CACHE_FILE, "w") as f:
+            json.dump({"timestamp": time.time(), "data": data}, f)
+        return
+    
+    try:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("INSERT OR REPLACE INTO analysis_cache VALUES (?, ?, ?)", ("analysis", json.dumps(data), time.time()))
+        conn.commit()
+        conn.close()
+    except:
+        pass
 
 def fetch_with_retry(url, params=None, max_retries=3, timeout=30):
     cache_key = f"{url}?{json.dumps(params, sort_keys=True)}" if params else url

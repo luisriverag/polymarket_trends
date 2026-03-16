@@ -1,16 +1,18 @@
 import os
 import requests
 import json
+import sqlite3
 from datetime import datetime, timedelta
 from flask import Flask, render_template, jsonify
 import time
-import threading
 
 app = Flask(__name__)
 
 GAMMA_API = "https://gamma-api.polymarket.com"
 CLOB_API = "https://clob.polymarket.com"
 DATA_API = "https://data-api.polymarket.com"
+
+DB_FILE = "polymarket.db"
 
 MARKET_CACHE_FILE = "market_cache.json"
 ANALYSIS_CACHE_FILE = "analysis_cache.json"
@@ -20,7 +22,20 @@ MARKET_CACHE_TTL = 180  # 3 minutes for market data
 ANALYSIS_CACHE_TTL = 60  # 1 minute for analysis
 
 _api_cache = {}
-_analysis_cache = {}
+
+def init_sqlite():
+    try:
+        conn = sqlite3.connect(DB_FILE)
+        c = conn.cursor()
+        c.execute('''CREATE TABLE IF NOT EXISTS analysis_cache (key TEXT PRIMARY KEY, data TEXT, timestamp REAL)''')
+        c.execute('''CREATE TABLE IF NOT EXISTS market_history (id TEXT PRIMARY KEY, question TEXT, slug TEXT, outcome TEXT, end_date TEXT, first_seen TEXT, last_seen TEXT, resolved_at TEXT)''')
+        conn.commit()
+        conn.close()
+        return True
+    except:
+        return False
+
+_sqlite_enabled = init_sqlite()
 
 def load_history():
     try:
@@ -1026,7 +1041,6 @@ def refresh():
     if os.path.exists(ANALYSIS_CACHE_FILE):
         os.remove(ANALYSIS_CACHE_FILE)
     _api_cache.clear()
-    _analysis_cache.clear()
     return jsonify({"status": "cache cleared"})
 
 if __name__ == "__main__":

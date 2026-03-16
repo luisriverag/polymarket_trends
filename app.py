@@ -472,10 +472,12 @@ def analyze_categories(markets):
 def process_events(events, markets):
     event_data = []
     for event in events:
-        question = event.get("question", "Unknown")
-        volumes = event.get("volume", {})
+        question = event.get("title") or event.get("question") or "Unknown Event"
+        volumes = event.get("volume")
         try:
-            if isinstance(volumes, dict):
+            if volumes is None:
+                total_vol = 0
+            elif isinstance(volumes, dict):
                 total_vol = sum(float(v) for v in volumes.values()) if volumes else 0
             elif isinstance(volumes, (int, float)):
                 total_vol = float(volumes)
@@ -483,18 +485,14 @@ def process_events(events, markets):
                 total_vol = 0
         except:
             total_vol = 0
-            
-        event_markets = event.get("markets", [])
-        slug = ""
         
-        for m in event_markets:
-            if isinstance(m, dict):
-                slug = m.get("slug", "")
-                break
-            elif isinstance(m, str):
-                matching = [x for x in markets if x.get("id") == m]
-                if matching:
-                    slug = matching[0].get("slug", "")
+        slug = event.get("slug", "")
+        
+        if not slug:
+            event_markets = event.get("markets", [])
+            for m in event_markets:
+                if isinstance(m, dict):
+                    slug = m.get("slug", "")
                     break
         
         event_data.append({

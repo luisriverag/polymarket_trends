@@ -9,8 +9,50 @@
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: #0d1117;
+            padding: 20px;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .loading-overlay.hidden {
+            display: none;
+        }
+        .progress-bar {
+            flex: 1;
+            height: 8px;
+            background: #21262d;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #58a6ff, #3fb950);
+            width: 0%;
+            transition: width 0.3s;
+        }
+        .loading-text {
+            color: #8b949e;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+    </style>
 </head>
 <body>
+    <div class="loading-overlay" id="loading">
+        <div class="progress-bar">
+            <div class="progress-fill" id="progress"></div>
+        </div>
+        <span class="loading-text" id="loading-text">Loading...</span>
+    </div>
+
     <header>
         <div class="header-content">
             <div class="logo">

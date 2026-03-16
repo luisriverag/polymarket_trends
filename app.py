@@ -349,33 +349,34 @@ def analyze_insiders(markets):
             current_price = get_yes_price(market)
             day_change = float(market.get("oneDayPriceChange", 0) or 0)
             
-            if volume > 2000 and liquidity > 1000:
+            if volume > 500:
                 signal = ""
                 conviction = 0
                 
-                if current_price > 0.80:
+                if current_price > 0.75:
                     signal = "Strong Yes"
                     conviction = current_price
-                elif current_price < 0.20:
+                elif current_price < 0.25:
                     signal = "Strong No"
                     conviction = 1 - current_price
-                elif current_price > 0.65 and day_change > 0.01:
+                elif current_price > 0.60:
                     signal = "Hot Yes"
-                    conviction = current_price * 0.6
-                elif current_price < 0.35 and day_change < -0.01:
+                    conviction = current_price * 0.5
+                elif current_price < 0.40:
                     signal = "Hot No"
-                    conviction = (1 - current_price) * 0.6
-                elif day_change > 0.05 and current_price > 0.50:
-                    signal = "Rising Yes"
-                    conviction = day_change * 10
-                elif day_change < -0.05 and current_price < 0.50:
-                    signal = "Falling No"
-                    conviction = abs(day_change) * 10
+                    conviction = (1 - current_price) * 0.5
+                elif day_change > 0.02:
+                    signal = "Rising"
+                    conviction = day_change * 20
+                elif day_change < -0.02:
+                    signal = "Falling"
+                    conviction = abs(day_change) * 20
                 
-                if signal and conviction > 0.3:
+                if signal and conviction > 0.15:
                     insiders.append({
                         "question": market.get("question", "Unknown")[:55],
                         "signal": signal,
+                        "conviction": conviction,
                         "probability": current_price * 100,
                         "volume": volume,
                         "liquidity": liquidity,

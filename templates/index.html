@@ -211,7 +211,7 @@
                             <tr onclick="window.open('{{ market.url }}', '_blank')">
                                 <td class="question-cell">{{ market.question }}</td>
                                 <td><span class="category-tag">{{ market.category }}</span></td>
-                                <td class="volume-cell">${{ "%.2f"|format((market.volume|float)/1e6) }}M</td>
+                                <td class="volume-cell">{% if market.volume|float >= 1000000 %}${{ "%.2f"|format((market.volume|float)/1e6) }}M{% elif market.volume|float >= 1000 %}${{ "%.1f"|format((market.volume|float)/1e3) }}K{% else %}${{ "%.0f"|format(market.volume|float) }}{% endif %}</td>
                             </tr>
                             {% endfor %}
                         </tbody>

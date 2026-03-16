@@ -515,11 +515,14 @@ def index():
     
     new_markets_data = []
     for m in data.get("new_markets", [])[:15]:
+        vol_24hr = m.get("volume24hr")
+        vol_total = m.get("volume")
+        volume = float(vol_24hr if vol_24hr else (vol_total if vol_total else 0))
         new_markets_data.append({
             "question": m.get("question", "Unknown")[:60],
-            "volume": m.get("volume24hr") or m.get("volume") or 0,
+            "volume": volume,
             "vol": m.get("vol", 0),
-            "category": m.get("category") or m.get("tags", ["General"])[0] if m.get("tags") else "General",
+            "category": m.get("category") or (m.get("tags", ["General"])[0] if m.get("tags") else "General"),
             "end_date": m.get("endDate", ""),
             "url": f"https://polymarket.com/event/{m.get('slug', '')}"
         })

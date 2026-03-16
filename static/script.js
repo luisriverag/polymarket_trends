@@ -162,6 +162,57 @@ async function refreshData() {
     }
 }
 
+function initDistributionChart(distribution) {
+    const ctx = document.getElementById('distributionChart');
+    if (!ctx) return;
+    
+    const ctx2d = ctx.getContext('2d');
+    const labels = Object.keys(distribution);
+    const data = Object.values(distribution);
+    
+    new Chart(ctx2d, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Markets',
+                data: data,
+                backgroundColor: data.map((v, i) => {
+                    const hue = (i / 10) * 120;
+                    return `hsla(${hue}, 70%, 50%, 0.7)`;
+                }),
+                borderColor: '#30363d',
+                borderWidth: 1,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#161b22',
+                    titleColor: '#c9d1d9',
+                    bodyColor: '#c9d1d9',
+                    borderColor: '#30363d',
+                    borderWidth: 1
+                }
+            },
+            scales: {
+                x: {
+                    grid: { color: '#30363d', drawBorder: false },
+                    ticks: { color: '#8b949e', font: { size: 10 } }
+                },
+                y: {
+                    grid: { color: '#30363d', drawBorder: false },
+                    ticks: { color: '#8b949e', font: { size: 10 } }
+                }
+            }
+        }
+    });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const tabs = document.querySelectorAll('.resolution-tab');
     tabs.forEach(tab => {

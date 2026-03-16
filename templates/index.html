@@ -91,20 +91,24 @@
             <div class="sentiment-grid">
                 <div class="sentiment-card">
                     <div class="sentiment-value" style="color: {{ '#3fb950' if sentiment.overall > 0.55 else '#f85149' if sentiment.overall < 0.45 else '#d29922' }}">{{ "%.0f"|format(sentiment.overall * 100) }}%</div>
-                    <div class="sentiment-label">Bullish Sentiment</div>
+                    <div class="sentiment-label">Avg Probability</div>
                 </div>
                 <div class="sentiment-card">
                     <div class="sentiment-value" style="color: #3fb950">{{ sentiment.bullish }}</div>
-                    <div class="sentiment-label">Bullish Markets</div>
+                    <div class="sentiment-label">Bullish (>60%)</div>
                 </div>
                 <div class="sentiment-card">
                     <div class="sentiment-value" style="color: #f85149">{{ sentiment.bearish }}</div>
-                    <div class="sentiment-label">Bearish Markets</div>
+                    <div class="sentiment-label">Bearish (<40%)</div>
                 </div>
                 <div class="sentiment-card">
                     <div class="sentiment-value" style="color: #d29922">{{ sentiment.neutral }}</div>
-                    <div class="sentiment-label">Neutral Markets</div>
+                    <div class="sentiment-label">Neutral</div>
                 </div>
+            </div>
+            <div class="distribution-chart">
+                <h3>📈 Probability Distribution</h3>
+                <canvas id="distributionChart"></canvas>
             </div>
             {% if sentiment.hot_takes %}
             <div class="hot-takes">
@@ -342,7 +346,9 @@
     <script>
         const volumeData = {{ volume_history|tojson }};
         const closedStats = {{ closed_stats|tojson }};
+        const sentimentDist = {{ sentiment.distribution|tojson }};
         initCharts(volumeData, closedStats);
+        initDistributionChart(sentimentDist);
         setInterval(refreshData, 300000);
     </script>
 </body>

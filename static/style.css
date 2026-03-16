@@ -1055,3 +1055,21 @@ footer a:hover {
     color: var(--danger);
     background: rgba(248, 81, 73, 0.15);
 }
+
+.distribution-chart {
+    margin: 20px 0;
+    padding: 16px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+
+.distribution-chart h3 {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+}
+
+.distribution-chart canvas {
+    max-height: 120px;
+}

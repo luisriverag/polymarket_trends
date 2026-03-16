@@ -348,7 +348,8 @@ def analyze_sentiment(markets):
         "bearish": 0,
         "neutral": 0,
         "categories": {},
-        "hot_takes": []
+        "hot_takes": [],
+        "distribution": {"0-10": 0, "10-20": 0, "20-30": 0, "30-40": 0, "40-50": 0, "50-60": 0, "60-70": 0, "70-80": 0, "80-90": 0, "90-100": 0}
     }
     
     for market in markets:
@@ -359,6 +360,28 @@ def analyze_sentiment(markets):
                 
             current_price = get_yes_price(market)
             day_change = float(market.get("oneDayPriceChange", 0) or 0)
+            
+            prob = current_price * 100
+            if prob < 10:
+                sentiment_data["distribution"]["0-10"] += 1
+            elif prob < 20:
+                sentiment_data["distribution"]["10-20"] += 1
+            elif prob < 30:
+                sentiment_data["distribution"]["20-30"] += 1
+            elif prob < 40:
+                sentiment_data["distribution"]["30-40"] += 1
+            elif prob < 50:
+                sentiment_data["distribution"]["40-50"] += 1
+            elif prob < 60:
+                sentiment_data["distribution"]["50-60"] += 1
+            elif prob < 70:
+                sentiment_data["distribution"]["60-70"] += 1
+            elif prob < 80:
+                sentiment_data["distribution"]["70-80"] += 1
+            elif prob < 90:
+                sentiment_data["distribution"]["80-90"] += 1
+            else:
+                sentiment_data["distribution"]["90-100"] += 1
             
             sentiment_data["count"] += 1
             sentiment_data["overall"] += current_price

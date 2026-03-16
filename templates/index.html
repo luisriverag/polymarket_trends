@@ -60,10 +60,19 @@
     </section>
 
     <main>
-        <section id="overview" class="chart-section">
-            <h2>📊 Volume Trends (30 Days)</h2>
-            <div class="chart-container">
-                <canvas id="volumeChart"></canvas>
+        <section id="overview" class="sentiment-section">
+            <h2>📊 Volume by Category (24h)</h2>
+            <div class="category-volume-grid">
+                <div class="category-volume-card">
+                    <div class="cat-vol-total">${{ "%.2f"|format(volume_history.total_24h/1e6) }}M</div>
+                    <div class="cat-vol-label">Total 24h Volume</div>
+                </div>
+                {% for cat, vol in volume_history.by_category[:8] %}
+                <div class="category-volume-card">
+                    <div class="cat-vol-value">${{ "%.1f"|format(vol/1e6) }}M</div>
+                    <div class="cat-vol-label">{{ cat }}</div>
+                </div>
+                {% endfor %}
             </div>
         </section>
 
@@ -218,10 +227,8 @@
 
     <script src="{{ url_for('static', filename='script.js') }}"></script>
     <script>
-        const volumeData = {{ volume_history|tojson }};
         const closedStats = {{ closed_stats|tojson }};
         const sentimentDist = {{ sentiment.distribution|tojson }};
-        initCharts(volumeData, closedStats);
         initDistributionChart(sentimentDist);
         setInterval(refreshData, 300000);
     </script>

@@ -190,21 +190,52 @@ def fetch_markets():
         return load_cache() or {"markets": [], "new_markets": [], "closed_markets": [], "events": [], "fetched_at": None}
 
 def calculate_volume_history(markets):
-    volume_by_day = {}
-    for market in markets:
-        volume = market.get("volume24hr") or market.get("volume") or 0
-        if volume:
-            day = datetime.now().strftime("%Y-%m-%d")
-            volume_by_day[day] = volume_by_day.get(day, 0) + float(volume)
+    volume_by_cat = {}
+    total_24h = 0
     
-    history = []
-    for i in range(29, -1, -1):
-        day = (datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d")
-        history.append({
-            "date": day,
-            "volume": volume_by_day.get(day, 0)
-        })
-    return history
+    keywords = {
+        "Politics": ["trump", "biden", "election", "congress", "senate", "president", "political", "democrat", "republican", "ukraine", "russia", "china", "taiwan"],
+        "Crypto": ["bitcoin", "btc", "eth", "crypto", "ether", "solana", "dogecoin", "polymarket"],
+        "Sports": ["nba", "nfl", "nhl", "soccer", "football", "tennis", "golf", "olympics", "mvp", "champion", "qualify"],
+        "Tech": ["ai", "openai", "google", "apple", "microsoft", "meta", "tesla", "launch", "product"],
+        "Entertainment": ["album", "music", "movie", "gta", "film", "celebrity", "star", "bond", "release"],
+        "Business": ["stock", "market", "economy", "fed", "interest", "recession", "company", "acquisition"],
+        "Science": ["climate", "weather", "space", "pandemic", "vaccine", "health"],
+        "World": ["will", "happen", "before", "after"]
+    }
+    
+    for market in markets:
+        try:
+            vol_24h = float(market.get("volume24hr", 0) or 0)
+            total_24h += vol_24h
+            
+            q = market.get("question", "").lower()
+            
+            assigned = False
+            for cat, kws in keywords.items():
+                for kw in kws:
+                    if kw in q:
+                        if cat not in volume_by_cat:
+                            volume_by_cat[cat] = 0
+                        volume_by_cat[cat] += vol_24h
+                        assigned = True
+                        break
+                if assigned:
+                    break
+            
+            if not assigned:
+                if "Other" not in volume_by_cat:
+                    volume_by_cat["Other"] = 0
+                volume_by_cat["Other"] += vol_24h
+        except:
+            continue
+    
+    top_cats = sorted(volume_by_cat.items(), key=lambda x: x[1], reverse=True)[:8]
+    
+    return {
+        "total_24h": total_24h,
+        "by_category": top_cats
+    }
 
 def analyze_underdogs(closed_markets):
     underdogs = []

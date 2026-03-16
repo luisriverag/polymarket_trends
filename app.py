@@ -36,68 +36,142 @@ def fetch_markets():
     
     try:
         all_markets = []
-        params = {
-            "closed": "false",
-            "limit": 200,
-            "sortBy": "volume24hr",
-            "ascending": "false"
-        }
+        seen_ids = set()
         
-        for offset in [0, 200, 400, 600]:
-            params["offset"] = offset
+        print("Fetching active markets...")
+        for offset in range(0, 2000, 200):
+            params = {
+                "closed": "false",
+                "limit": 200,
+                "offset": offset
+            }
             resp = requests.get(f"{GAMMA_API}/markets", params=params, timeout=30)
             resp.raise_for_status()
             batch = resp.json()
             if not batch:
                 break
-            all_markets.extend(batch)
+            for m in batch:
+                if m.get("id") not in seen_ids:
+                    seen_ids.add(m.get("id"))
+                    all_markets.append(m)
+            print(f"  Active offset {offset}: {len(batch)} markets")
             if len(batch) < 200:
                 break
         
+        POPULAR_TAGS = ["Politics", "Sports", "Crypto", "Tech", "Elections", "US politics", 
+                       "Trump", "Global Politics", "AI", "Business", "Entertainment",
+                       "Science", "Climate & Weather", "Economics", "Finance", "Music",
+                       "Film & TV", "Celebrities", "Soccer", "Basketball", "Football",
+                       "Baseball", "Hockey", "Tennis", "Golf", "Boxing/MMA", "Olympics",
+                       "Elections 2024", "Elections 2028", "World Elections", "Wars"]
+        
+        print(f"Fetching markets by {len(POPULAR_TAGS)} tags...")
+        for tag in POPULAR_TAGS:
+            params_tag = {
+                "closed": "false",
+                "limit": 100,
+                "tag": tag
+            }
+            try:
+                resp_tag = requests.get(f"{GAMMA_API}/markets", params=params_tag, timeout=15)
+                if resp_tag.status_code == 200:
+                    batch = resp_tag.json()
+                    new_count = 0
+                    for m in batch:
+                        if m.get("id") not in seen_ids:
+                            seen_ids.add(m.get("id"))
+                            all_markets.append(m)
+                            new_count += 1
+                    if new_count > 0:
+                        print(f"  Tag '{tag}': +{new_count} new markets")
+            except:
+                continue
+        
+        print("Fetching events...")
+        events = []
+        try:
+            params_events = {
+                "active": "true",
+                "closed": "false",
+                "limit": 100
+            }
+            resp_events = requests.get(f"{GAMMA_API}/events", params=params_events, timeout=30)
+            if resp_events.status_code == 200:
+                events = resp_events.json()
+                for event in events:
+                    for m in event.get("markets", []):
+                        if isinstance(m, dict) and m.get("id") not in seen_ids:
+                            seen_ids.add(m.get("id"))
+                            all_markets.append(m)
+                print(f"  Events: {len(events)} events processed")
+        except Exception as e:
+            print(f"  Error fetching events: {e}")
+            events = []
+        
+        print("Fetching new markets...")
         all_new_markets = []
-        params_new = {
-            "closed": "false",
-            "limit": 200,
-            "sortBy": "createdAt",
-            "ascending": "false"
-        }
-        for offset in [0, 200, 400]:
-            params_new["offset"] = offset
-            resp_new = requests.get(f"{GAMMA_API}/markets", params=params_new, timeout=30)
-            resp_new.raise_for_status()
-            batch = resp_new.json()
-            if not batch:
-                break
-            all_new_markets.extend(batch)
-            if len(batch) < 200:
+        new_seen = set()
+        for offset in range(0, 1000, 200):
+            params_new = {
+                "closed": "false",
+                "limit": 200,
+                "offset": offset,
+                "sortBy": "createdAt"
+            }
+            try:
+                resp_new = requests.get(f"{GAMMA_API}/markets", params=params_new, timeout=30)
+                if resp_new.status_code != 200:
+                    break
+                batch = resp_new.json()
+                if not batch:
+                    break
+                for m in batch:
+                    if m.get("id") not in new_seen:
+                        new_seen.add(m.get("id"))
+                        all_new_markets.append(m)
+                print(f"  New offset {offset}: {len(batch)} markets")
+                if len(batch) < 200:
+                    break
+            except:
                 break
         
-        params_closed = {
-            "closed": "true",
-            "resolved": "true",
-            "limit": 200,
-            "sortBy": "endDate",
-            "ascending": "false"
-        }
-        
+        print("Fetching closed markets...")
         all_closed_markets = []
-        for offset in [0, 200, 400]:
-            params_closed["offset"] = offset
-            resp_closed = requests.get(f"{GAMMA_API}/markets", params=params_closed, timeout=30)
-            resp_closed.raise_for_status()
-            batch = resp_closed.json()
-            if not batch:
-                break
-            all_closed_markets.extend(batch)
-            if len(batch) < 200:
+        for offset in range(0, 2000, 200):
+            params_closed = {
+                "closed": "true",
+                "limit": 200,
+                "offset": offset
+            }
+            try:
+                resp_closed = requests.get(f"{GAMMA_API}/markets", params=params_closed, timeout=30)
+                resp_closed.raise_for_status()
+                batch = resp_closed.json()
+                if not batch:
+                    break
+                all_closed_markets.extend(batch)
+                print(f"  Closed offset {offset}: {len(batch)} markets")
+                if len(batch) < 200:
+                    break
+            except:
                 break
         
-        params_events = {
-            "active": "true",
-            "closed": "false",
-            "limit": 50
+        print(f"\\nTotal: {len(all_markets)} active, {len(all_new_markets)} new, {len(all_closed_markets)} closed")
+        
+        data = {
+            "markets": all_markets[:500],
+            "new_markets": all_new_markets[:200],
+            "closed_markets": all_closed_markets[:500],
+            "events": events[:50],
+            "fetched_at": datetime.now().isoformat()
         }
-        resp_events = requests.get(f"{GAMMA_API}/events", params=params_events, timeout=30)
+        save_cache(data)
+        return data
+    except Exception as e:
+        print(f"Error fetching markets: {e}")
+        import traceback
+        traceback.print_exc()
+        return load_cache() or {"markets": [], "new_markets": [], "closed_markets": [], "events": [], "fetched_at": None}
         events = []
         if resp_events.status_code == 200:
             events = resp_events.json()

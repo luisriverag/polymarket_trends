@@ -469,68 +469,73 @@ def analyze_insiders(markets):
     return sorted(insiders, key=lambda x: x["conviction"], reverse=True)[:15]
 
 def analyze_resolutions(closed_markets):
+    from datetime import datetime
     resolutions = {
         "yes": [],
         "no": [],
         "underdogs": [],
-        "blowouts": []
+        "blowouts": [],
+        "pending": []
     }
+    
+    now = datetime.now()
     
     for market in closed_markets:
         try:
-            outcome = market.get("outcome", "")
-            if not outcome:
-                continue
-            
             question = market.get("question", "Unknown")
             volume = float(market.get("volume", 0) or 0)
+            end_date = market.get("endDate", "")
             
-            if outcome == "Yes":
+            # Check if market has ended
+            has_ended = False
+            if end_date:
+                try:
+                    end_dt = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+                    has_ended = end_dt.replace(tzinfo=None) < now
+                except:
+                    pass
+            
+            outcome = market.get("outcome", "")
+            
+            if outcome:
                 close_price = get_yes_price(market)
-                resolutions["yes"].append({
+                if outcome == "Yes":
+                    resolutions["yes"].append({
+                        "question": question[:60],
+                        "volume": volume,
+                        "close_price": close_price * 100,
+                        "url": f"https://polymarket.com/event/{market.get('slug', '')}"
+                    })
+                    if close_price < 0.5 and volume > 1000:
+                        resolutions["underdogs"].append({
+                            "question": question[:60],
+                            "close_price": close_price * 100,
+                            "volume": volume,
+                            "url": f"https://polymarket.com/event/{market.get('slug', '')}"
+                        })
+                    elif close_price > 0.85 and volume > 1000:
+                        resolutions["blowouts"].append({
+                            "question": question[:60],
+                            "close_price": close_price * 100,
+                            "volume": volume,
+                            "url": f"https://polymarket.com/event/{market.get('slug', '')}"
+                        })
+                else:
+                    resolutions["no"].append({
+                        "question": question[:60],
+                        "volume": volume,
+                        "close_price": (1 - close_price) * 100,
+                        "url": f"https://polymarket.com/event/{market.get('slug', '')}"
+                    })
+            elif has_ended and volume > 1000:
+                close_price = get_yes_price(market)
+                resolutions["pending"].append({
                     "question": question[:60],
                     "volume": volume,
                     "close_price": close_price * 100,
+                    "end_date": end_date[:10],
                     "url": f"https://polymarket.com/event/{market.get('slug', '')}"
                 })
-                
-                if close_price < 0.5 and volume > 1000:
-                    resolutions["underdogs"].append({
-                        "question": question[:60],
-                        "close_price": close_price * 100,
-                        "volume": volume,
-                        "url": f"https://polymarket.com/event/{market.get('slug', '')}"
-                    })
-                elif close_price > 0.85 and volume > 1000:
-                    resolutions["blowouts"].append({
-                        "question": question[:60],
-                        "close_price": close_price * 100,
-                        "volume": volume,
-                        "url": f"https://polymarket.com/event/{market.get('slug', '')}"
-                    })
-            else:
-                close_price = get_no_price(market)
-                resolutions["no"].append({
-                    "question": question[:60],
-                    "volume": volume,
-                    "close_price": close_price * 100,
-                    "url": f"https://polymarket.com/event/{market.get('slug', '')}"
-                })
-                
-                if close_price < 0.5 and volume > 1000:
-                    resolutions["underdogs"].append({
-                        "question": question[:60],
-                        "close_price": close_price * 100,
-                        "volume": volume,
-                        "url": f"https://polymarket.com/event/{market.get('slug', '')}"
-                    })
-                elif close_price > 0.85 and volume > 1000:
-                    resolutions["blowouts"].append({
-                        "question": question[:60],
-                        "close_price": close_price * 100,
-                        "volume": volume,
-                        "url": f"https://polymarket.com/event/{market.get('slug', '')}"
-                    })
         except:
             continue
     
@@ -538,6 +543,7 @@ def analyze_resolutions(closed_markets):
     resolutions["no"] = resolutions["no"][:10]
     resolutions["underdogs"] = resolutions["underdogs"][:10]
     resolutions["blowouts"] = resolutions["blowouts"][:10]
+    resolutions["pending"] = resolutions["pending"][:15]
     
     return resolutions
 

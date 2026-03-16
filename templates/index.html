@@ -156,29 +156,46 @@
         <section id="resolution" class="resolution-section">
             <h2>🏆 Resolutions</h2>
             <div class="resolution-tabs">
-                <div class="resolution-tab active" data-tab="yes">Yes {{ resolutions.yes|length }}</div>
+                <div class="resolution-tab active" data-tab="pending">Pending {{ resolutions.pending|length }}</div>
+                <div class="resolution-tab" data-tab="yes">Yes {{ resolutions.yes|length }}</div>
                 <div class="resolution-tab" data-tab="no">No {{ resolutions.no|length }}</div>
                 <div class="resolution-tab" data-tab="underdogs">Underdogs {{ resolutions.underdogs|length }}</div>
             </div>
             <div class="resolution-content">
-                <div class="resolution-list active" id="tab-yes">
+                <div class="resolution-list active" id="tab-pending">
+                    {% for r in resolutions.pending[:15] %}
+                    <div class="resolved-card pending" onclick="window.open('{{ r.url }}', '_blank')">
+                        <span class="resolved-outcome">⏳</span>
+                        <span class="resolved-question">{{ r.question }}</span>
+                        <span class="resolved-price">{{ "%.0f"|format(r.close_price) }}%</span>
+                        <span class="resolved-date">{{ r.end_date }}</span>
+                    </div>
+                    {% else %}
+                    <div class="empty-state"><p>No pending resolutions</p></div>
+                    {% endfor %}
+                </div>
+                <div class="resolution-list" id="tab-yes">
                     {% for r in resolutions.yes[:10] %}
-                    <div class="resolved-card yes">
+                    <div class="resolved-card yes" onclick="window.open('{{ r.url }}', '_blank')">
                         <span class="resolved-outcome">YES</span>
                         <span class="resolved-question">{{ r.question }}</span>
                         <span class="resolved-price">{{ "%.0f"|format(r.close_price) }}%</span>
                         <span class="resolved-vol">${{ "%.1f"|format(r.volume/1e6) }}M</span>
                     </div>
+                    {% else %}
+                    <div class="empty-state"><p>No Yes resolutions</p></div>
                     {% endfor %}
                 </div>
                 <div class="resolution-list" id="tab-no">
                     {% for r in resolutions.no[:10] %}
-                    <div class="resolved-card no">
+                    <div class="resolved-card no" onclick="window.open('{{ r.url }}', '_blank')">
                         <span class="resolved-outcome">NO</span>
                         <span class="resolved-question">{{ r.question }}</span>
                         <span class="resolved-price">{{ "%.0f"|format(r.close_price) }}%</span>
                         <span class="resolved-vol">${{ "%.1f"|format(r.volume/1e6) }}M</span>
                     </div>
+                    {% else %}
+                    <div class="empty-state"><p>No No resolutions</p></div>
                     {% endfor %}
                 </div>
                 <div class="resolution-list" id="tab-underdogs">

@@ -263,7 +263,8 @@ def calculate_volume_history(markets):
         total_24h += vol
         cat = market.get("category") or "Other"
         volume_by_cat[cat] = volume_by_cat.get(cat, 0) + vol
-    return {"total_24h": total_24h, "by_category": volume_by_cat}
+    sorted_cats = sorted(volume_by_cat.items(), key=lambda x: x[1], reverse=True)[:8]
+    return {"total_24h": total_24h, "by_category": sorted_cats}
 
 def analyze_underdogs(closed_markets):
     underdogs = []

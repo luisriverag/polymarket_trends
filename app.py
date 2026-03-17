@@ -779,12 +779,26 @@ def analyze_resolutions(closed_markets, active_markets):
 
             is_upcoming = end_date_naive > now
 
+            if end_date_naive > now:
+                delta = end_date_naive - now
+                if delta.days > 0:
+                    time_left = f"{delta.days}d"
+                elif delta.seconds >= 3600:
+                    hours = delta.seconds // 3600
+                    time_left = f"{hours}h"
+                else:
+                    minutes = delta.seconds // 60
+                    time_left = f"{minutes}m"
+            else:
+                time_left = "expired"
+
             resolutions["pending"].append(
                 {
                     "question": question[:60],
                     "volume": volume,
                     "close_price": close_price * 100,
                     "end_date": end_date[:10],
+                    "time_left": time_left,
                     "is_repeat": is_repeat,
                     "is_upcoming": is_upcoming,
                     "url": build_market_url(market),

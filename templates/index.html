@@ -331,7 +331,7 @@
                                 {% if r.is_repeat %}<span class="repeat-tag">🔄</span>{% endif %}
                             </span>
                             <span class="resolved-price">{{ "%.0f"|format(r.close_price) }}%</span>
-                            <span class="resolved-date">{{ r.end_date }}</span>
+                            <span class="resolved-date">{{ r.end_date }} · {{ r.time_left }}</span>
                         </div>
                         {% else %}
                         <div class="empty-state"><p>No pending resolutions</p></div>

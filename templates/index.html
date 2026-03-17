@@ -109,10 +109,14 @@
                     <div class="cat-vol-total">${{ "%.2f"|format(volume_history.total_24h/1e6) }}M</div>
                     <div class="cat-vol-label">Total 24h Volume</div>
                 </div>
-                {% for cat, vol in volume_history.by_category %}
+                {% for item in volume_history.by_category %}
                 <div class="category-volume-card">
-                    <div class="cat-vol-value">${{ "%.1f"|format(vol/1e6) }}M</div>
-                    <div class="cat-vol-label">{{ cat }}</div>
+                    <div class="cat-vol-value">${{ "%.1f"|format(item.volume/1e6) }}M
+                        {% if item.change is not none %}
+                        <span class="cat-vol-change {{ 'up' if item.change > 0 else 'down' }}">{{ '+' if item.change > 0 }}{{ "%.0f"|format(item.change) }}%</span>
+                        {% endif %}
+                    </div>
+                    <div class="cat-vol-label">{{ item.category }}</div>
                 </div>
                 {% endfor %}
             </div>

@@ -1184,6 +1184,23 @@ footer a:hover {
     text-transform: uppercase;
 }
 
+.cat-vol-change {
+    font-size: 11px;
+    margin-left: 6px;
+    padding: 2px 5px;
+    border-radius: 3px;
+}
+
+.cat-vol-change.up {
+    color: var(--success);
+    background: rgba(63, 185, 80, 0.15);
+}
+
+.cat-vol-change.down {
+    color: var(--danger);
+    background: rgba(248, 81, 73, 0.15);
+}
+
 .mece-section {
     background: var(--bg-card);
     border: 1px solid var(--border);

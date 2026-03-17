@@ -1,5 +1,12 @@
-some items show in resolved yes/no but not in resolutions resolved or pending
-volume by category not split in categories
-no graph for probability distribution in market sentiment
-no info on top traders?
-improve how data from polymarket is queried and stored
+update volume per category so it displays +/- vs previous day
+
+update readme and specs, then update remote repo
+add unit tests
+
+add time for pending resolution events in resolutions card
+option to set timezone
+improve how data from polymarket is queried and stored, db architecture doesnt seem efficient
+how is market sentiment average yes price calculated? 21% seems wrong, so does bearish vs bullish scores
+how is probability distribution calculated? does it take into account the number of potential outcomes per event? perhaps better if split into categories based on number of outcomes?
+
+

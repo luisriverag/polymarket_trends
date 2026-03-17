@@ -37,6 +37,9 @@ def init_db():
         """CREATE TABLE IF NOT EXISTS market_history (id TEXT PRIMARY KEY, question TEXT, slug TEXT, outcome TEXT, end_date TEXT, first_seen TEXT, last_seen TEXT, resolved_at TEXT)"""
     )
     c.execute(
+        """CREATE TABLE IF NOT EXISTS volume_history (date TEXT PRIMARY KEY, data TEXT)"""
+    )
+    c.execute(
         """CREATE INDEX IF NOT EXISTS idx_market_history_slug ON market_history(slug)"""
     )
     c.execute(
@@ -112,6 +115,40 @@ def save_analysis_cache(data):
         conn.close()
     except:
         pass
+
+
+def save_volume_history(volume_by_category):
+    try:
+        import json
+
+        conn = get_db()
+        c = conn.cursor()
+        today = datetime.now().strftime("%Y-%m-%d")
+        c.execute(
+            "INSERT OR REPLACE INTO volume_history VALUES (?, ?)",
+            (today, json.dumps(volume_by_category)),
+        )
+        conn.commit()
+        conn.close()
+    except:
+        pass
+
+
+def load_previous_volume_history():
+    try:
+        import json
+
+        conn = get_db()
+        c = conn.cursor()
+        yesterday = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+        c.execute("SELECT data FROM volume_history WHERE date = ?", (yesterday,))
+        row = c.fetchone()
+        conn.close()
+        if row:
+            return json.loads(row[0])
+    except:
+        pass
+    return None
 
 
 def load_history():
@@ -376,8 +413,23 @@ def calculate_volume_history(markets, events=None):
                 cat = cat.get("label", "Other")
             volume_by_cat[cat] = volume_by_cat.get(cat, 0) + vol
 
-    sorted_cats = sorted(volume_by_cat.items(), key=lambda x: x[1], reverse=True)[:8]
-    return {"total_24h": total_24h, "by_category": sorted_cats}
+    previous = load_previous_volume_history()
+    prev_by_cat = {}
+    if previous:
+        for cat, vol in previous.get("by_category", []):
+            prev_by_cat[cat] = vol
+
+    save_volume_history(
+        {"total_24h": total_24h, "by_category": list(volume_by_cat.items())}
+    )
+
+    result = []
+    for cat, vol in sorted(volume_by_cat.items(), key=lambda x: x[1], reverse=True)[:8]:
+        prev_vol = prev_by_cat.get(cat, 0)
+        change = ((vol - prev_vol) / prev_vol * 100) if prev_vol > 0 else None
+        result.append({"category": cat, "volume": vol, "change": change})
+
+    return {"total_24h": total_24h, "by_category": result}
 
 
 def analyze_underdogs(closed_markets):

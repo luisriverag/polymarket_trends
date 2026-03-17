@@ -429,6 +429,21 @@
             initDistributionChart(sentimentData.distribution);
         }
         setInterval(refreshData, 180000);
+        setInterval(saveData, 300000);
+    </script>
+    <script>
+        async function saveData() {
+            try {
+                const resp = await fetch('/api/save');
+                const data = await resp.json();
+                if (data.status === 'saved') {
+                    const sizeMB = (data.db_size / 1024 / 1024).toFixed(1);
+                    console.log(`[Auto-save] ${data.markets} markets, DB: ${sizeMB}MB`);
+                }
+            } catch (e) {
+                console.error('Save failed:', e);
+            }
+        }
     </script>
 </body>
 </html>

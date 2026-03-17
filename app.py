@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from flask import Flask, render_template, jsonify
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
+import threading
 
 app = Flask(__name__)
 
@@ -1019,5 +1020,50 @@ def refresh():
     return jsonify({"status": "ok", "db_size": db_size})
 
 
+@app.route("/api/save")
+def save_data():
+    try:
+        data = fetch_markets()
+        update_market_history(data.get("markets", []) + data.get("closed_markets", []))
+
+        vol = calculate_volume_history(data.get("markets", []), data.get("events", []))
+
+        import os
+
+        db_path = os.path.join(os.path.dirname(__file__), DB_FILE)
+        db_size = os.path.getsize(db_path) if os.path.exists(db_path) else 0
+
+        return jsonify(
+            {
+                "status": "saved",
+                "markets": len(data.get("markets", [])),
+                "db_size": db_size,
+            }
+        )
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)})
+
+
+def start_background_saver():
+    def saver():
+        while True:
+            try:
+                data = fetch_markets()
+                update_market_history(
+                    data.get("markets", []) + data.get("closed_markets", [])
+                )
+                calculate_volume_history(
+                    data.get("markets", []), data.get("events", [])
+                )
+                print(f"[Background] Saved {len(data.get('markets', []))} markets")
+            except Exception as e:
+                print(f"[Background] Error: {e}")
+            time.sleep(300)
+
+    t = threading.Thread(target=saver, daemon=True)
+    t.start()
+
+
 if __name__ == "__main__":
+    start_background_saver()
     app.run(debug=True, host="0.0.0.0", port=5000)

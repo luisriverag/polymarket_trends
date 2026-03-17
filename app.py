@@ -544,7 +544,8 @@ def analyze_categories(markets):
 
 def analyze_sentiment(markets):
     sentiment = {"bullish": 0, "bearish": 0, "neutral": 0, "overall": 0.5}
-    total = 0
+    total_volume = 0
+    weighted_sum = 0
     distribution = {
         "0-10%": 0,
         "10-20%": 0,
@@ -557,16 +558,21 @@ def analyze_sentiment(markets):
         "80-90%": 0,
         "90-100%": 0,
     }
+    bucket_volumes = {b: 0 for b in distribution.keys()}
+
     for market in markets:
         price = get_yes_price(market)
-        sentiment["overall"] += price
-        total += 1
+        vol = float(market.get("volume24hr") or market.get("volume") or 0)
+
+        weighted_sum += price * vol
+        total_volume += vol
+
         if price > 0.6:
-            sentiment["bullish"] += 1
+            sentiment["bullish"] += vol
         elif price < 0.4:
-            sentiment["bearish"] += 1
+            sentiment["bearish"] += vol
         else:
-            sentiment["neutral"] += 1
+            sentiment["neutral"] += vol
 
         bucket = int(price * 10)
         bucket = min(bucket, 9)
@@ -583,10 +589,13 @@ def analyze_sentiment(markets):
             "90-100%",
         ]
         distribution[bucket_labels[bucket]] += 1
+        bucket_volumes[bucket_labels[bucket]] += vol
 
-    if total > 0:
-        sentiment["overall"] = sentiment["overall"] / total
+    if total_volume > 0:
+        sentiment["overall"] = weighted_sum / total_volume
+
     sentiment["distribution"] = distribution
+    sentiment["bucket_volumes"] = bucket_volumes
     return sentiment
 
 

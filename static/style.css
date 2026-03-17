@@ -1272,6 +1272,12 @@ footer a:hover {
     font-weight: 600;
 }
 
+.mece-vol .vol-total {
+    color: var(--text-secondary);
+    font-weight: 400;
+    font-size: 11px;
+}
+
 .mece-change {
     font-weight: 600;
     padding: 2px 6px;

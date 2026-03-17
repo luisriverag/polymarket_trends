@@ -1,6 +1,9 @@
 DONE
 db is not changing size, is it really getting and storing new data from API?
 add indexes to db with the views for cards so it loads faster
+is refresh refreshing data neccesary for all cards? eg resolved yes & no counter hasnt changed, active markets always displays 10000...
+is it adding new data to the db continously and updating what it displays? add unit tests to confirm
+in top markets by volume display both 24h trading volume and total trading volume for each event
 
 DOING
 

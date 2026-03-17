@@ -161,7 +161,7 @@
                     <div class="mece-content">
                         <div class="mece-title">{{ event.question }}</div>
                         <div class="mece-stats">
-                            <span class="mece-vol">${{ "%.2f"|format(event.volume/1e6) }}M</span>
+                            <span class="mece-vol">${{ "%.1f"|format(event.volume24hr/1e6) }}M <span class="vol-total">({{ "%.1f"|format(event.volume/1e6) }}M)</span></span>
                         </div>
                     </div>
                 </div>

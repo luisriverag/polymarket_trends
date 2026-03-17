@@ -594,6 +594,7 @@ def process_events(events, markets):
     event_data = []
     for event in events:
         question = event.get("title") or event.get("question") or "Unknown Event"
+
         volumes = event.get("volume")
         try:
             if volumes is None:
@@ -606,6 +607,8 @@ def process_events(events, markets):
                 total_vol = 0
         except:
             total_vol = 0
+
+        vol_24hr = float(event.get("volume24hr") or 0)
 
         slug = event.get("slug", "")
         market_id = event.get("id", "")
@@ -625,7 +628,13 @@ def process_events(events, markets):
                         break
 
         event_data.append(
-            {"question": question[:70], "slug": slug, "volume": total_vol, "url": url}
+            {
+                "question": question[:70],
+                "slug": slug,
+                "volume": total_vol,
+                "volume24hr": vol_24hr,
+                "url": url,
+            }
         )
     return sorted(event_data, key=lambda x: x["volume"], reverse=True)[:15]
 

@@ -147,16 +147,51 @@ function initCharts(volumeData, closedStats) {
     }
 }
 
+function logLoading(msg, type = 'info') {
+    const log = document.getElementById('loading-log');
+    if (!log) return;
+    const time = new Date().toLocaleTimeString('en-US', {hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit'});
+    const entry = document.createElement('div');
+    entry.className = 'log-entry';
+    entry.innerHTML = `<span class="log-time">[${time}]</span><span class="log-${type}">${msg}</span>`;
+    log.appendChild(entry);
+    log.scrollTop = log.scrollHeight;
+}
+
 async function refreshData() {
     const btn = document.getElementById('refresh-btn');
+    const log = document.getElementById('loading-log');
+    if (log) log.innerHTML = '';
+    logLoading('Starting refresh...', 'info');
     btn.textContent = '⟳ Refreshing...';
     btn.disabled = true;
     
     try {
+        logLoading('Clearing cache...', 'info');
         await fetch('/api/refresh');
+        logLoading('Cache cleared ✓', 'ok');
+        
+        logLoading('Fetching markets...', 'info');
+        await new Promise(r => setTimeout(r, 2000));
+        logLoading('Markets loaded ✓', 'ok');
+        
+        logLoading('Fetching events...', 'info');
+        await new Promise(r => setTimeout(r, 1000));
+        logLoading('Events loaded ✓', 'ok');
+        
+        logLoading('Fetching leaderboard...', 'info');
+        await new Promise(r => setTimeout(r, 1000));
+        logLoading('Leaderboard loaded ✓', 'ok');
+        
+        logLoading('Analyzing resolutions...', 'info');
+        await new Promise(r => setTimeout(r, 1000));
+        logLoading('Done ✓', 'ok');
+        
+        logLoading('Reloading page...', 'info');
         location.reload();
     } catch (e) {
         console.error('Refresh failed:', e);
+        logLoading('Error: ' + e.message, 'err');
         btn.textContent = '↻ Refresh';
         btn.disabled = false;
     }

@@ -16,41 +16,43 @@
             left: 0;
             right: 0;
             background: #0d1117;
-            padding: 20px;
+            padding: 12px 20px;
             z-index: 9999;
-            display: flex;
-            align-items: center;
-            gap: 15px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: #8b949e;
+            max-height: 150px;
+            overflow-y: auto;
         }
         .loading-overlay.hidden {
             display: none;
         }
-        .progress-bar {
-            flex: 1;
-            height: 8px;
-            background: #21262d;
-            border-radius: 4px;
-            overflow: hidden;
+        .loading-log {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
         }
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #58a6ff, #3fb950);
-            width: 0%;
-            transition: width 0.3s;
+        .loading-log .log-entry {
+            display: flex;
+            gap: 8px;
         }
-        .loading-text {
-            color: #8b949e;
-            font-size: 14px;
-            white-space: nowrap;
+        .loading-log .log-time {
+            color: #484f58;
+        }
+        .loading-log .log-ok {
+            color: #3fb950;
+        }
+        .loading-log .log-err {
+            color: #f85149;
+        }
+        .loading-log .log-info {
+            color: #58a6ff;
         }
     </style>
 </head>
 <body>
     <div class="loading-overlay" id="loading">
-        <div class="progress-bar">
-            <div class="progress-fill" id="progress"></div>
-        </div>
-        <span class="loading-text" id="loading-text">Loading...</span>
+        <div class="loading-log" id="loading-log"></div>
     </div>
 
     <header>

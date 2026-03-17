@@ -281,7 +281,7 @@
                             </select>
                         </div>
                     </div>
-                    <div class="resolution-list" id="resolved-list">
+                    <div class="resolution-list active" id="resolved-list">
                         {% for r in resolutions.resolved[:10] %}
                         <div class="resolved-card {{ 'yes' if r.outcome == 'Yes' else 'no' }}" onclick="window.open('{{ r.url }}', '_blank')">
                             <span class="resolved-outcome">{{ r.outcome }}</span>
@@ -315,7 +315,7 @@
                             </select>
                         </div>
                     </div>
-                    <div class="resolution-list" id="pending-list">
+                    <div class="resolution-list active" id="pending-list">
                         {% for r in resolutions.pending[:10] %}
                         <div class="resolved-card pending" onclick="window.open('{{ r.url }}', '_blank')">
                             <span class="resolved-outcome">{% if r.is_upcoming %}📅{% else %}⏳{% endif %}</span>
@@ -417,6 +417,10 @@
     <script src="{{ url_for('static', filename='script.js') }}"></script>
     <script>
         const closedStats = {{ closed_stats|tojson }};
+        const sentimentData = {{ sentiment|tojson }};
+        if (sentimentData && sentimentData.distribution) {
+            initDistributionChart(sentimentData.distribution);
+        }
         setInterval(refreshData, 180000);
     </script>
 </body>

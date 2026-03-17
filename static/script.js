@@ -168,8 +168,13 @@ async function refreshData() {
     
     try {
         logLoading('Clearing cache...', 'info');
-        await fetch('/api/refresh');
+        const resp = await fetch('/api/refresh');
+        const data = await resp.json();
         logLoading('Cache cleared ✓', 'ok');
+        
+        const dbSize = data.db_size || 0;
+        const sizeMB = (dbSize / 1024 / 1024).toFixed(2);
+        logLoading(`DB size: ${sizeMB} MB`, 'info');
         
         logLoading('Fetching markets...', 'info');
         await new Promise(r => setTimeout(r, 2000));

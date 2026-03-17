@@ -993,7 +993,14 @@ def index():
 
 @app.route("/api/refresh")
 def refresh():
+    db_size = 0
     try:
+        import os
+
+        db_path = os.path.join(os.path.dirname(__file__), DB_FILE)
+        if os.path.exists(db_path):
+            db_size = os.path.getsize(db_path)
+
         conn = get_db()
         c = conn.cursor()
         c.execute("DELETE FROM analysis_cache")
@@ -1002,7 +1009,7 @@ def refresh():
         _api_cache.clear()
     except:
         pass
-    return jsonify({"status": "cache cleared"})
+    return jsonify({"status": "cache cleared", "db_size": db_size})
 
 
 if __name__ == "__main__":

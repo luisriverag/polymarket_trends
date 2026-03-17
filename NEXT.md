@@ -1,9 +1,8 @@
-update volume per category so it displays +/- vs previous day
-
 update readme and specs, then update remote repo
 add unit tests
 
 add time for pending resolution events in resolutions card
+
 option to select timezone (New York, London, Madrid, Dubai)
 improve how data from polymarket is queried and stored, db architecture doesnt seem efficient
 how is market sentiment average yes price calculated? 21% seems wrong, so does bearish vs bullish scores

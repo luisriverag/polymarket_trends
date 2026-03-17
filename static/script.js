@@ -167,32 +167,29 @@ async function refreshData() {
     btn.disabled = true;
     
     try {
-        logLoading('Clearing cache...', 'info');
         const resp = await fetch('/api/refresh');
         const data = await resp.json();
-        logLoading('Cache cleared ✓', 'ok');
         
         const dbSize = data.db_size || 0;
         const sizeMB = (dbSize / 1024 / 1024).toFixed(2);
-        logLoading(`DB size: ${sizeMB} MB`, 'info');
+        logLoading(`DB: ${sizeMB} MB`, 'info');
         
         logLoading('Fetching markets...', 'info');
         await new Promise(r => setTimeout(r, 2000));
-        logLoading('Markets loaded ✓', 'ok');
+        logLoading('Markets ✓', 'ok');
         
         logLoading('Fetching events...', 'info');
         await new Promise(r => setTimeout(r, 1000));
-        logLoading('Events loaded ✓', 'ok');
+        logLoading('Events ✓', 'ok');
         
         logLoading('Fetching leaderboard...', 'info');
         await new Promise(r => setTimeout(r, 1000));
-        logLoading('Leaderboard loaded ✓', 'ok');
+        logLoading('Leaderboard ✓', 'ok');
         
-        logLoading('Analyzing resolutions...', 'info');
+        logLoading('Analyzing...', 'info');
         await new Promise(r => setTimeout(r, 1000));
         logLoading('Done ✓', 'ok');
         
-        logLoading('Reloading page...', 'info');
         location.reload();
     } catch (e) {
         console.error('Refresh failed:', e);

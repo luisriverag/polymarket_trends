@@ -1000,16 +1000,9 @@ def refresh():
         db_path = os.path.join(os.path.dirname(__file__), DB_FILE)
         if os.path.exists(db_path):
             db_size = os.path.getsize(db_path)
-
-        conn = get_db()
-        c = conn.cursor()
-        c.execute("DELETE FROM analysis_cache")
-        conn.commit()
-        conn.close()
-        _api_cache.clear()
     except:
         pass
-    return jsonify({"status": "cache cleared", "db_size": db_size})
+    return jsonify({"status": "ok", "db_size": db_size})
 
 
 if __name__ == "__main__":

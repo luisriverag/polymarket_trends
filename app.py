@@ -46,6 +46,21 @@ def init_db():
     c.execute(
         """CREATE INDEX IF NOT EXISTS idx_market_history_outcome ON market_history(outcome)"""
     )
+    c.execute(
+        """CREATE INDEX IF NOT EXISTS idx_market_history_last_seen ON market_history(last_seen)"""
+    )
+    c.execute(
+        """CREATE INDEX IF NOT EXISTS idx_market_history_end_date ON market_history(end_date)"""
+    )
+    c.execute(
+        """CREATE INDEX IF NOT EXISTS idx_market_history_resolved ON market_history(resolved_at)"""
+    )
+    c.execute(
+        """CREATE INDEX IF NOT EXISTS idx_analysis_cache_timestamp ON analysis_cache(timestamp)"""
+    )
+    c.execute(
+        """CREATE INDEX IF NOT EXISTS idx_volume_history_date ON volume_history(date)"""
+    )
     conn.commit()
     conn.close()
 

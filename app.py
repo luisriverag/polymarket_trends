@@ -350,16 +350,32 @@ def fetch_markets():
         }
 
 
-def calculate_volume_history(markets):
+def calculate_volume_history(markets, events=None):
     volume_by_cat = {}
     total_24h = 0
-    for market in markets:
-        vol = float(market.get("volume24hr") or 0)
-        total_24h += vol
-        cat = market.get("category") or (
-            market.get("tags", ["Other"])[0] if market.get("tags") else "Other"
-        )
-        volume_by_cat[cat] = volume_by_cat.get(cat, 0) + vol
+
+    if events:
+        for event in events:
+            vol = float(event.get("volume24hr") or event.get("volume") or 0)
+            total_24h += vol
+            tags = event.get("tags", [])
+            if tags:
+                cat = tags[0].get("label", "Other")
+            else:
+                cat = "Other"
+            volume_by_cat[cat] = volume_by_cat.get(cat, 0) + vol
+
+    if not events or total_24h == 0:
+        for market in markets:
+            vol = float(market.get("volume24hr") or 0)
+            total_24h += vol
+            cat = market.get("category") or (
+                market.get("tags", ["Other"])[0] if market.get("tags") else "Other"
+            )
+            if isinstance(cat, dict):
+                cat = cat.get("label", "Other")
+            volume_by_cat[cat] = volume_by_cat.get(cat, 0) + vol
+
     sorted_cats = sorted(volume_by_cat.items(), key=lambda x: x[1], reverse=True)[:8]
     return {"total_24h": total_24h, "by_category": sorted_cats}
 
@@ -778,7 +794,9 @@ def index():
         )
 
     data = fetch_markets()
-    volume_history = calculate_volume_history(data.get("markets", []))
+    volume_history = calculate_volume_history(
+        data.get("markets", []), data.get("events", [])
+    )
     underdogs = analyze_underdogs(data.get("closed_markets", []))
 
     total_volume = sum(

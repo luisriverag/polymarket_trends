@@ -338,12 +338,14 @@ def fetch_markets():
     try:
         all_markets = []
         seen_ids = set()
+        has_more = True
+        max_offset = 10000
 
-        for offset in range(0, 20000, 200):
+        for offset in range(0, max_offset, 200):
             params = {"closed": "false", "limit": 200, "offset": offset}
             batch = fetch_with_retry(f"{GAMMA_API}/markets", params=params)
             if not batch:
-                continue
+                break
             for m in batch:
                 if m.get("id") not in seen_ids:
                     seen_ids.add(m.get("id"))
@@ -410,7 +412,7 @@ def calculate_volume_history(markets, events=None):
 
     if events:
         for event in events:
-            vol = float(event.get("volume24hr") or event.get("volume") or 0)
+            vol = float(event.get("volume24hr") or 0)
             total_24h += vol
             tags = event.get("tags", [])
             if tags:
@@ -418,8 +420,7 @@ def calculate_volume_history(markets, events=None):
             else:
                 cat = "Other"
             volume_by_cat[cat] = volume_by_cat.get(cat, 0) + vol
-
-    if not events or total_24h == 0:
+    else:
         for market in markets:
             vol = float(market.get("volume24hr") or 0)
             total_24h += vol
@@ -868,11 +869,12 @@ def index():
 
     if cached_data and cached_analysis:
         markets = cached_data.get("markets", [])
-        total_volume = sum(
-            float(m.get("volume24hr") or m.get("volume") or 0) for m in markets
+        events = cached_data.get("events", [])
+        total_volume = (
+            sum(float(e.get("volume24hr") or 0) for e in events) if events else 0
         )
         active_markets = len(markets)
-        avg_volume = total_volume / active_markets if active_markets > 0 else 0
+        avg_volume = total_volume / len(events) if events else 0
 
         return render_template(
             "index.html",
@@ -900,12 +902,10 @@ def index():
     )
     underdogs = analyze_underdogs(data.get("closed_markets", []))
 
-    total_volume = sum(
-        float(m.get("volume24hr") or m.get("volume") or 0)
-        for m in data.get("markets", [])
-    )
+    events = data.get("events", [])
+    total_volume = sum(float(e.get("volume24hr") or 0) for e in events)
     active_markets = len(data.get("markets", []))
-    avg_volume = total_volume / active_markets if active_markets > 0 else 0
+    avg_volume = total_volume / len(events) if events else 0
 
     new_markets_data = []
     for m in data.get("new_markets", [])[:15]:

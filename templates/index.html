@@ -160,7 +160,7 @@
 
         <section id="top-markets" class="mece-section">
             <h2>🔥 Top Markets by Volume</h2>
-            <p class="section-desc">Highest 24h trading volume</p>
+            <p class="section-desc">Highest 24h trading volume (lifetime volume)</p>
             <div class="mece-grid">
                 {% for event in events[:12] %}
                 <div class="mece-card" onclick="window.open('{{ event.url }}', '_blank')">
@@ -168,7 +168,7 @@
                     <div class="mece-content">
                         <div class="mece-title">{{ event.question }}</div>
                         <div class="mece-stats">
-                            <span class="mece-vol">${{ "%.1f"|format(event.volume24hr/1e6) }}M <span class="vol-total">({{ "%.1f"|format(event.volume/1e6) }}M)</span></span>
+                            <span class="mece-vol">${{ "%.1f"|format(event.volume24hr/1e6) }}M <span class="vol-total">(${{ "%.0f"|format(event.volume/1e6) }}M)</span></span>
                         </div>
                     </div>
                 </div>

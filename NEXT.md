@@ -12,11 +12,18 @@ option to select timezone (New York, London, Madrid, Dubai, Tokyo)
 
 
 DOING
-
+displaying too many decimals in volume weighted sentiment calculation
 
 
 TO DO
-displaying too many decimals in volume weighted sentiment calculation
 load all markets with over $1000 in bets, dont hard cap to 10000 markets
 improve how data from polymarket is queried and stored, db architecture doesnt seem efficient
 add unit tests
+
+
+
+
+
+
+
+

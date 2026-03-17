@@ -140,15 +140,15 @@
                     <div class="sentiment-label">Avg Yes Price</div>
                 </div>
                 <div class="sentiment-card">
-                    <div class="sentiment-value" style="color: #3fb950">{{ sentiment.bullish }}</div>
+                    <div class="sentiment-value" style="color: #3fb950">${{ "%.1f"|format(sentiment.bullish/1e6) }}M</div>
                     <div class="sentiment-label">Bullish (>60%)</div>
                 </div>
                 <div class="sentiment-card">
-                    <div class="sentiment-value" style="color: #f85149">{{ sentiment.bearish }}</div>
+                    <div class="sentiment-value" style="color: #f85149">${{ "%.1f"|format(sentiment.bearish/1e6) }}M</div>
                     <div class="sentiment-label">Bearish (<40%)</div>
                 </div>
                 <div class="sentiment-card">
-                    <div class="sentiment-value" style="color: #d29922">{{ sentiment.neutral }}</div>
+                    <div class="sentiment-value" style="color: #d29922">${{ "%.1f"|format(sentiment.neutral/1e6) }}M</div>
                     <div class="sentiment-label">Neutral</div>
                 </div>
             </div>

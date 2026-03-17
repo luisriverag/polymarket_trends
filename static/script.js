@@ -271,4 +271,43 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('tab-' + tabId).classList.add('active');
         });
     });
+    
+    // Load saved timezone
+    const savedTz = localStorage.getItem('timezone') || 'America/New_York';
+    document.getElementById('timezone-select').value = savedTz;
+    convertDatesToTz(savedTz);
 });
+
+function changeTimezone(tz) {
+    localStorage.setItem('timezone', tz);
+    location.reload();
+}
+
+function convertDatesToTz(tz) {
+    const dateEls = document.querySelectorAll('[data-date]');
+    dateEls.forEach(el => {
+        const dt = new Date(el.getAttribute('data-date'));
+        if (!isNaN(dt)) {
+            try {
+                const fmt = dt.toLocaleString('en-US', { 
+                    timeZone: tz, 
+                    month: 'short', 
+                    day: 'numeric',
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+                el.textContent = fmt;
+            } catch (e) {}
+        }
+    });
+}
+
+function formatDateToTz(dateStr, tz) {
+    if (!dateStr) return '';
+    try {
+        const date = new Date(dateStr);
+        return date.toLocaleString('en-US', { timeZone: tz, month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    } catch (e) {
+        return dateStr;
+    }
+}

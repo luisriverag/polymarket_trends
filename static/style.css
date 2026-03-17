@@ -99,6 +99,22 @@ nav a:hover {
     color: var(--bg-primary);
 }
 
+#timezone-select {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 13px;
+}
+
+#timezone-select option {
+    background: var(--bg-card);
+    color: var(--text-primary);
+}
+
 .hero {
     background: linear-gradient(180deg, var(--bg-card) 0%, var(--bg-primary) 100%);
     padding: 32px 24px;

@@ -1,12 +1,13 @@
 import sqlite3
 import requests
 from datetime import datetime, timedelta
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
 import threading
 
 app = Flask(__name__)
+
 
 GAMMA_API = "https://gamma-api.polymarket.com"
 CLOB_API = "https://clob.polymarket.com"

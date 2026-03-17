@@ -69,6 +69,13 @@
                 <a href="#big-moves">Big Moves</a>
                 <a href="#traders">Traders</a>
                 <a href="#resolution">Resolutions</a>
+                <select id="timezone-select" onchange="changeTimezone(this.value)">
+                    <option value="America/New_York">New York</option>
+                    <option value="Europe/London">London</option>
+                    <option value="Europe/Madrid">Madrid</option>
+                    <option value="Asia/Dubai">Dubai</option>
+                    <option value="Asia/Tokyo">Tokyo</option>
+                </select>
                 <button id="refresh-btn" onclick="refreshData()">↻ Refresh</button>
             </nav>
         </div>
@@ -331,7 +338,7 @@
                                 {% if r.is_repeat %}<span class="repeat-tag">🔄</span>{% endif %}
                             </span>
                             <span class="resolved-price">{{ "%.0f"|format(r.close_price) }}%</span>
-                            <span class="resolved-date">{{ r.end_date }} · {{ r.time_left }}</span>
+                            <span class="resolved-date" data-date="{{ r.end_date }}">{{ r.end_date }} · {{ r.time_left }}</span>
                         </div>
                         {% else %}
                         <div class="empty-state"><p>No pending resolutions</p></div>
@@ -395,7 +402,7 @@
                             <span class="resolved-outcome">${r.is_upcoming ? '📅' : '⏳'}</span>
                             <span class="resolved-question">${r.question}${r.is_repeat ? '<span class="repeat-tag">🔄</span>' : ''}</span>
                             <span class="resolved-price">${Math.round(r.close_price)}%</span>
-                            <span class="resolved-date">${r.end_date}</span>
+                            <span class="resolved-date" data-date="${r.end_date}">${r.end_date} · ${r.time_left}</span>
                         </div>`
                     ).join('') || '<div class="empty-state"><p>No data</p></div>';
                     document.getElementById('pending-page').textContent = pendingPage;

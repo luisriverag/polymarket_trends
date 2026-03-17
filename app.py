@@ -1057,6 +1057,7 @@ def refresh():
 @app.route("/api/save")
 def save_data():
     try:
+        _api_cache.clear()
         data = fetch_markets()
         update_market_history(data.get("markets", []) + data.get("closed_markets", []))
 
@@ -1082,6 +1083,7 @@ def start_background_saver():
     def saver():
         while True:
             try:
+                _api_cache.clear()
                 data = fetch_markets()
                 update_market_history(
                     data.get("markets", []) + data.get("closed_markets", [])
